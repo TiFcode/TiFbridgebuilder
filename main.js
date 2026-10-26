@@ -13,6 +13,32 @@ const toast = document.querySelector('#toast');
 const testButton = document.querySelector('#test');
 const undoButton = document.querySelector('#undo');
 const clearButton = document.querySelector('#clear');
+// CC0 recordings from OpenGameArt (looneybits: start; domasx2: idle loop).
+// Both are started directly from the Test button gesture so Safari permits
+// playback; the loop is faded in only after the ignition has begun.
+const engineStartSound = new Audio('assets/audio/engine-start.ogg');
+const engineRunSound = new Audio('assets/audio/engine-idle-loop.ogg');
+engineStartSound.preload = engineRunSound.preload = 'auto';
+engineStartSound.volume = .38; engineRunSound.loop = true; engineRunSound.volume = 0;
+let engineFadeTimer = 0, engineStartTimer = 0;
+function stopBusAudio(){
+  clearInterval(engineFadeTimer); clearTimeout(engineStartTimer); engineFadeTimer=engineStartTimer=0;
+  engineStartSound.pause(); engineStartSound.currentTime=0;
+  engineRunSound.pause(); engineRunSound.currentTime=0; engineRunSound.volume=0;
+}
+function startBusAudio(){
+  stopBusAudio();
+  // Calling play synchronously in this click path avoids iOS' autoplay gate.
+  engineStartSound.play().catch(()=>{});
+  engineRunSound.play().catch(()=>{});
+  engineStartTimer=setTimeout(()=>{
+    const target=.18;
+    engineFadeTimer=setInterval(()=>{
+      engineRunSound.volume=Math.min(target,engineRunSound.volume+.018);
+      if(engineRunSound.volume>=target) { clearInterval(engineFadeTimer); engineFadeTimer=0; }
+    },80);
+  },900);
+}
 
 // iOS Safari will terminate a page that grows its WebGL allocation during an
 // animation.  Keep a deliberately modest, fixed rendering budget on phones.
@@ -202,7 +228,9 @@ function renderRoadDeck(){
   clearRenderGroup(deckGroup); roadDeckPieces.length=0;
   // The pale deck is an intentional blueprint: the player immediately sees a
   // two-lane road to complete, instead of two unrelated stacks of books.
-  const guide=createRoadPiece(9,true); placeRoadPiece(guide,{x:-4.5,y:-.08},{x:4.5,y:-.08}); guide.userData.guide=true;
+  // Once testing begins this guide must disappear. Every visible road slab
+  // then comes from a pair of simulation nodes and bends with the structure.
+  if(!testing){ const guide=createRoadPiece(9,true); placeRoadPiece(guide,{x:-4.5,y:-.08},{x:4.5,y:-.08}); guide.userData.guide=true; }
   for(let i=1;i<=6;i++)if(hasMember(i-1,i)){const piece=createRoadPiece(BEAM_LENGTH);placeRoadPiece(piece,anchors[i-1],anchors[i]);roadDeckPieces.push({piece,a:i-1,b:i});}
   if(roadComplete()){
     const left=createRoadPiece(1.16),right=createRoadPiece(1.16); placeRoadPiece(left,{x:-5.66,y:-.08},{x:-4.5,y:-.08});placeRoadPiece(right,{x:4.5,y:-.08},{x:5.66,y:-.08});
@@ -241,16 +269,19 @@ canvas.addEventListener('pointermove',e=>{if(!dragging)return;const p=pointAt(e)
 function finishDrag(e){if(!dragging)return;brushAt(e);dragStart=null;dragging=false;brushMode=false;controls.enabled=true;clearPreview();updateMeter();}
 canvas.addEventListener('pointerup',finishDrag);canvas.addEventListener('pointercancel',finishDrag);
 undoButton.onclick=()=>{if(!testing&&members.length){members.pop();renderBridge();updateMeter();}};clearButton.onclick=()=>{if(!testing){members.splice(0);renderBridge();clearPreview();dragStart=null;updateMeter();}};
-function buildBus(){const vehicle=new THREE.Group();vehicle.position.set(-5.1,.27,.58);if(busTemplate){const model=busTemplate.clone(true); /* The template was already normalized with its length on X and its wheels on Y. Rotating it again here was what made it float above the deck. The vehicle group below supplies the small road-slope rotation instead. */ vehicle.add(model);return vehicle;}const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;vehicle.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;vehicle.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;vehicle.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);vehicle.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;vehicle.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);vehicle.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);vehicle.add(sign);return vehicle;}
+function buildBus(){const vehicle=new THREE.Group();vehicle.position.set(-5.1,.27,.58);if(busTemplate){const model=busTemplate.clone(true); /* The normalized asset lies on road axis X, but its bonnet points toward -X. It travels -X → +X, so flip only the visual child around the world-up axis. */ const forward=new THREE.Group(); forward.rotation.y=Math.PI; forward.add(model); vehicle.add(forward); return vehicle;}const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;vehicle.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;vehicle.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;vehicle.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);vehicle.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;vehicle.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);vehicle.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);vehicle.add(sign);return vehicle;}
 function bridgeReady(){return roadComplete();}
 function startSimulation(){
   lastHeatRender=-Infinity;
   simulation={elapsed:0,maxStrain:0,failed:false,settle:0,nodes:anchors.map((a,id)=>({p:new THREE.Vector2(a.x,a.y),v:new THREE.Vector2(),fixed:id===0||id===6})),beams:members.map(m=>({a:m.a,b:m.b,rest:Math.hypot(anchors[m.a].x-anchors[m.b].x,anchors[m.a].y-anchors[m.b].y),strain:0,broken:false,view:null}))};
   buildSimulationBridge();
+  // Remove the construction blueprint and rebuild the actual deck from the
+  // simulated nodes before the first physics step.
+  renderRoadDeck();
 }
 function structuralStep(dt){const s=simulation,n=s.nodes,forces=n.map(()=>new THREE.Vector2(0,-.34));const progress=Math.min(1,s.elapsed/9.4),busX=-4.28+progress*8.56;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);forces[i].y-=3.9*(1-u);forces[i+1].y-=3.9*u;break;}}for(const b of s.beams){if(b.broken)continue;const A=n[b.a],B=n[b.b],d=B.p.clone().sub(A.p),len=d.length(),strain=(len-b.rest)/b.rest;b.strain=strain;s.maxStrain=Math.max(s.maxStrain,Math.abs(strain));if(Math.abs(strain)>.145){b.broken=true;s.failed=true;if(b.view){b.view.sides.forEach(side=>bridgeGroup.remove(side.member,side.capA,side.capB));b.view.material.dispose();}continue;}const dir=d.multiplyScalar(1/Math.max(.001,len)),relative=B.v.clone().sub(A.v).dot(dir),force=dir.multiplyScalar((len-b.rest)*115+relative*2.8);if(!A.fixed)forces[b.a].add(force);if(!B.fixed)forces[b.b].sub(force);}for(let i=0;i<n.length;i++){const node=n[i];if(node.fixed){node.p.set(anchors[i].x,anchors[i].y);node.v.set(0,0);continue;}node.v.addScaledVector(forces[i],dt);node.v.multiplyScalar(Math.exp(-2.2*dt));node.p.addScaledVector(node.v,dt);}s.elapsed+=dt;for(let i=0;i<n.length;i++){anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(n[i].p.x,n[i].p.y,m.position.z));}updateRoadDeck();if(s.elapsed-lastHeatRender>1/20){s.beams.filter(b=>!b.broken).forEach(updateSimulationBeamView);lastHeatRender=s.elapsed;}const health=s.failed?0:Math.max(0,100-s.maxStrain/.145*100);updateMeter(health);if(bus){let roadY=0;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);roadY=THREE.MathUtils.lerp(A.y,B.y,u);bus.position.x=busX;bus.position.y=roadY+.31;bus.rotation.z=Math.atan2(B.y-A.y,B.x-A.x);break;}}if(s.failed){bus.position.y-=dt*2.2;}}if(s.failed||s.elapsed>9.4){s.settle+=dt;if(s.settle>1.25)finishSimulation(!s.failed);}}
-function finishSimulation(passed){testing=false;testButton.disabled=false;if(bus){scene.remove(bus);bus=null;}simulation=null;anchors.forEach((a,i)=>anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(a.x,a.y,m.position.z)));renderBridge();instruction.textContent=passed?'Test trecut: deformarea a rămas în limite.':'Podul a cedat: adaugă triunghiuri şi testează din nou.';notify(passed?'Test fizic trecut! ✨':'Podul a cedat sub sarcina autobuzului.');updateMeter();}
-testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify('Unește mai întâi toate punctele roz ale șoselei.');return;}testing=true;clearPreview();startSimulation();bus=buildBus();scene.add(bus);testButton.disabled=true;instruction.textContent='Simulare structurală în timp real…';notify('Încărcare, deformare şi rupere a grinzilor active.');};
+function finishSimulation(passed){testing=false;testButton.disabled=false;stopBusAudio();if(bus){scene.remove(bus);bus=null;}simulation=null;anchors.forEach((a,i)=>anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(a.x,a.y,m.position.z)));renderBridge();instruction.textContent=passed?'Test trecut: deformarea a rămas în limite.':'Podul a cedat: adaugă triunghiuri şi testează din nou.';notify(passed?'Test fizic trecut! ✨':'Podul a cedat sub sarcina autobuzului.');updateMeter();}
+testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify('Unește mai întâi toate punctele roz ale șoselei.');return;}testing=true;clearPreview();startSimulation();bus=buildBus();scene.add(bus);startBusAudio();testButton.disabled=true;instruction.textContent='Simulare structurală în timp real…';notify('Încărcare, deformare şi rupere a grinzilor active.');};
 function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(canvas);window.visualViewport?.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,80));resize();
 let webglLost=false;
