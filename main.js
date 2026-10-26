@@ -14,8 +14,11 @@ const testButton = document.querySelector('#test');
 const undoButton = document.querySelector('#undo');
 const clearButton = document.querySelector('#clear');
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// iOS Safari will terminate a page that grows its WebGL allocation during an
+// animation.  Keep a deliberately modest, fixed rendering budget on phones.
+const isMobile = matchMedia('(pointer: coarse)').matches;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.75));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.32;
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#78c9e8'); scene.fog = new THREE.Fog('#78c9e8', 26, 58);
@@ -43,7 +46,7 @@ function dataTexture(url, repeat=[1,1]) { const t=textureLoader.load(url); t.wra
 const mat = (color, extra={}) => new THREE.MeshStandardMaterial({ color, roughness: .7, ...extra });
 const wood=mat('#d97b36',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_diff_1k.jpg',[2,1]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg',[2,1]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg',[2,1]),roughness:.52}), woodDark=mat('#74351e'), pink=mat('#ff6684'), cream=mat('#fff3d8'), yellow=mat('#ffc62f'), black=mat('#17202c',{roughness:.34,metalness:.72}), glass=mat('#48ccef',{roughness:.12,metalness:.12,transparent:true,opacity:.76}), green=mat('#55d28a'), leaf=mat('#36bb74'), mint=mat('#ffb29e',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg',[4,3]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg',[4,3]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg',[4,3]),roughness:.72});
 scene.add(new THREE.HemisphereLight('#fff5c7', '#348cc4', 3.25));
-const sun = new THREE.DirectionalLight('#fff0a8', 4.0); sun.position.set(-8, 11, 10); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-22;sun.shadow.camera.right=22;sun.shadow.camera.top=14;sun.shadow.camera.bottom=-11;scene.add(sun);
+const sun = new THREE.DirectionalLight('#fff0a8', 4.0); sun.position.set(-8, 11, 10); sun.castShadow=true; sun.shadow.mapSize.set(isMobile ? 1024 : 1536,isMobile ? 1024 : 1536); sun.shadow.camera.left=-22;sun.shadow.camera.right=22;sun.shadow.camera.top=14;sun.shadow.camera.bottom=-11;scene.add(sun);
 const rim = new THREE.DirectionalLight('#b9c8ff', 1.35);rim.position.set(8,5,4);scene.add(rim);
 function add(g,m,x=0,y=0,z=0){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
 function box(w,h,d,m,x=0,y=0,z=0){return add(new THREE.BoxGeometry(w,h,d),m,x,y,z)}
@@ -111,8 +114,19 @@ anchors.forEach(a=>{const tone=a.y>-.4?'#ffbe83':'#74d9c3';const ring=add(new TH
 
 const bridgeGroup=new THREE.Group();scene.add(bridgeGroup);const previewGroup=new THREE.Group();scene.add(previewGroup);
 const members=[];let dragStart=null,dragging=false,brushMode=false,testing=false,bus=null,simulation=null,lastFrame=0;
+// Group.clear() only unlinks children.  It does *not* release their GPU
+// buffers or cloned heatmap materials, which was the mobile Safari crash.
+function clearRenderGroup(group){
+  group.traverse(o=>{
+    if(!o.isMesh)return;
+    o.geometry?.dispose();
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    materials.forEach(m=>m?.dispose());
+  });
+  group.clear();
+}
 function hasMember(a,b){return members.some(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a));}
-function renderBeamPoints(group,A,B,material=wood,opacity=1,caps=true){const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy);if(len<.02)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,len,16),material.clone());m.material.transparent=opacity<1;m.material.opacity=opacity;m.position.set((A.x+B.x)/2,(A.y+B.y)/2,.42);m.rotation.z=-Math.atan2(dx,dy);m.castShadow=true;m.receiveShadow=true;group.add(m);if(caps)for(const p of [A,B]){const cap=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),woodDark);cap.position.set(p.x,p.y,.42);group.add(cap);}}
+function renderBeamPoints(group,A,B,material=wood,opacity=1,caps=true){const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy);if(len<.02)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,len,16),material.clone());m.material.transparent=opacity<1;m.material.opacity=opacity;m.position.set((A.x+B.x)/2,(A.y+B.y)/2,.42);m.rotation.z=-Math.atan2(dx,dy);m.castShadow=true;m.receiveShadow=true;group.add(m);if(caps)for(const p of [A,B]){const cap=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),woodDark.clone());cap.position.set(p.x,p.y,.42);group.add(cap);}}
 function renderBeam(group,a,b,material=wood,opacity=1){renderBeamPoints(group,anchors[a],anchors[b],material,opacity);}
 function pointFor(id){return simulation?simulation.nodes[id].p:anchors[id];}
 function heatMaterial(strain=0){
@@ -124,13 +138,12 @@ function heatMaterial(strain=0){
   return new THREE.MeshStandardMaterial({color,emissive:color.clone().multiplyScalar(.28+intensity*.42),roughness:.36,metalness:.03});
 }
 function renderHeatBeam(group,A,B,strain){
-  const segments=8, ax=A.x, ay=A.y, dx=(B.x-ax)/segments, dy=(B.y-ay)/segments;
-  for(let i=0;i<segments;i++){
-    const from={x:ax+dx*i,y:ay+dy*i},to={x:ax+dx*(i+1),y:ay+dy*(i+1)};
-    renderBeamPoints(group,from,to,heatMaterial(strain),1,i===0||i===segments-1);
-  }
+  // An axial member has one physically uniform strain along its length; a
+  // single heat-coloured beam is therefore both accurate and vastly cheaper
+  // than rebuilding eight tiny cylinders every frame.
+  renderBeamPoints(group,A,B,heatMaterial(strain));
 }
-function renderBridge(){bridgeGroup.clear();const active=simulation?simulation.beams:members;active.filter(m=>!m.broken).forEach(m=>{const A=pointFor(m.a),B=pointFor(m.b);if(simulation)renderHeatBeam(bridgeGroup,A,B,m.strain||0);else renderBeamPoints(bridgeGroup,A,B,anchors[m.a].y>-.4&&anchors[m.b].y>-.4?pink:wood);});}
+function renderBridge(){clearRenderGroup(bridgeGroup);const active=simulation?simulation.beams:members;active.filter(m=>!m.broken).forEach(m=>{const A=pointFor(m.a),B=pointFor(m.b);if(simulation)renderHeatBeam(bridgeGroup,A,B,m.strain||0);else renderBeamPoints(bridgeGroup,A,B,anchors[m.a].y>-.4&&anchors[m.b].y>-.4?pink:wood);});}
 function beamLength(a,b){return Math.hypot(anchors[a].x-anchors[b].x,anchors[a].y-anchors[b].y);}
 function isFixedLengthBeam(a,b){return a!==b&&Math.abs(beamLength(a,b)-BEAM_LENGTH)<=BEAM_LENGTH_TOLERANCE;}
 function addBeam(a,b){if(!isFixedLengthBeam(a,b)||hasMember(a,b))return false;members.push({a,b});renderBridge();updateMeter();return true;}
@@ -154,9 +167,9 @@ function brushAt(e){
   if(nearby.length) anchorMeshes.filter(m=>nearby.includes(m.userData.anchor.id)).forEach(m=>m.material.emissive.set('#4ee9b0'));
 }
 function pointAt(e){setPointer(e); return raycaster.ray.intersectPlane(dragPlane,dragPoint) ? dragPoint.clone() : null;}
-function clearPreview(){previewGroup.clear();anchorMeshes.forEach(m=>m.material.emissive.set('#87c9fb'));}
+function clearPreview(){clearRenderGroup(previewGroup);anchorMeshes.forEach(m=>m.material.emissive.set('#87c9fb'));}
 function fixedEndFrom(a,freeEnd){const start=anchors[a],delta=new THREE.Vector2(freeEnd.x-start.x,freeEnd.y-start.y);if(delta.lengthSq()<.001)delta.set(1,0);delta.setLength(BEAM_LENGTH);return new THREE.Vector3(start.x+delta.x,start.y+delta.y,.42);}
-function preview(a,freeEnd,target){previewGroup.clear();if(a===null||!freeEnd)return;const valid=target&&isFixedLengthBeam(a,target.id);const end=valid?new THREE.Vector3(target.x,target.y,.42):fixedEndFrom(a,freeEnd);const previewMat=mat(valid?'#73f3b0':'#ffcb72',{emissive:valid?'#29d98b':'#ff9e46',emissiveIntensity:.85,roughness:.35});renderBeamPoints(previewGroup,anchors[a],end,previewMat,.86,false);const cursor=new THREE.Mesh(new THREE.SphereGeometry(.14,18,14),new THREE.MeshStandardMaterial({color:valid?'#d6ffec':'#fff0c8',emissive:valid?'#47f2ad':'#ffb15e',emissiveIntensity:1.2,roughness:.24}));cursor.position.copy(end);cursor.position.z=.46;previewGroup.add(cursor);if(valid)anchorMeshes.filter(m=>m.userData.anchor.id===target.id).forEach(m=>m.material.emissive.set('#4ee9b0'));}
+function preview(a,freeEnd,target){clearRenderGroup(previewGroup);if(a===null||!freeEnd)return;const valid=target&&isFixedLengthBeam(a,target.id);const end=valid?new THREE.Vector3(target.x,target.y,.42):fixedEndFrom(a,freeEnd);const previewMat=mat(valid?'#73f3b0':'#ffcb72',{emissive:valid?'#29d98b':'#ff9e46',emissiveIntensity:.85,roughness:.35});renderBeamPoints(previewGroup,anchors[a],end,previewMat,.86,false);const cursor=new THREE.Mesh(new THREE.SphereGeometry(.14,18,14),new THREE.MeshStandardMaterial({color:valid?'#d6ffec':'#fff0c8',emissive:valid?'#47f2ad':'#ffb15e',emissiveIntensity:1.2,roughness:.24}));cursor.position.copy(end);cursor.position.z=.46;previewGroup.add(cursor);if(valid)anchorMeshes.filter(m=>m.userData.anchor.id===target.id).forEach(m=>m.material.emissive.set('#4ee9b0'));}
 canvas.addEventListener('pointerdown',e=>{if(testing)return;const a=anchorAt(e);if(!a)return;dragStart=a.id;dragging=true;brushMode=true;controls.enabled=false;canvas.setPointerCapture?.(e.pointerId);clearPreview();brushAt(e);updateMeter();e.preventDefault();});
 canvas.addEventListener('pointermove',e=>{if(!dragging)return;clearPreview();brushAt(e);});
 function finishDrag(e){if(!dragging)return;brushAt(e);dragStart=null;dragging=false;brushMode=false;controls.enabled=true;clearPreview();updateMeter();}
@@ -170,4 +183,7 @@ function finishSimulation(passed){testing=false;testButton.disabled=false;if(bus
 testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify('Unește mai întâi toate punctele roz ale șoselei.');return;}testing=true;clearPreview();startSimulation();bus=buildBus();scene.add(bus);testButton.disabled=true;instruction.textContent='Simulare structurală în timp real…';notify('Încărcare, deformare şi rupere a grinzilor active.');};
 function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(canvas);window.visualViewport?.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,80));resize();
-function animate(t){requestAnimationFrame(animate);const dt=Math.min(.033,(t-lastFrame||16)/1000);lastFrame=t;controls.update();if(!testing)anchorMeshes.forEach((m,i)=>m.rotation.z=t*.001*(i%2?1:-1));if(testing&&simulation)structuralStep(dt);renderer.render(scene,camera);}updateMeter();animate(0);
+let webglLost=false;
+canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();webglLost=true;testing=false;testButton.disabled=false;instruction.textContent='Motorul grafic s-a oprit. Reîncarcă pagina pentru a continua.';notify('WebGL a rămas fără resurse; reîncarcă pagina.');});
+canvas.addEventListener('webglcontextrestored',()=>{webglLost=false;renderBridge();});
+function animate(t){requestAnimationFrame(animate);if(webglLost)return;const dt=Math.min(.033,(t-lastFrame||16)/1000);lastFrame=t;controls.update();if(!testing)anchorMeshes.forEach((m,i)=>m.rotation.z=t*.001*(i%2?1:-1));if(testing&&simulation)structuralStep(dt);renderer.render(scene,camera);}updateMeter();animate(0);
