@@ -1,4 +1,7 @@
 import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js';
+import { MTLLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/MTLLoader.js';
+import { OBJLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/OBJLoader.js';
 
 const canvas = document.querySelector('#game');
 const instruction = document.querySelector('#instruction');
@@ -14,7 +17,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#b9d9cf'); scene.fog = new THREE.Fog('#b9d9cf', 18, 42);
-const camera = new THREE.OrthographicCamera(-10, 10, 6, -6, .1, 100); camera.position.set(0, 1.1, 22); camera.lookAt(0, .7, 0);
+const camera = new THREE.PerspectiveCamera(42, 1, .1, 100); camera.position.set(10, 6.8, 18);
+const controls = new OrbitControls(camera, canvas); controls.target.set(0, -1.1, 0); controls.enableDamping=true; controls.dampingFactor=.07; controls.minDistance=9; controls.maxDistance=30; controls.maxPolarAngle=Math.PI*.48; controls.minPolarAngle=Math.PI*.20; controls.enablePan=true; controls.screenSpacePanning=true;
 const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
 
 const mat = (color, extra={}) => new THREE.MeshStandardMaterial({ color, roughness: .7, ...extra });
@@ -47,6 +51,14 @@ bookStack(-7.25);bookStack(7.25);
 box(3.25,.28,1.1,pink,-5.65,-.42,.1);box(3.25,.28,1.1,pink,5.65,-.42,.1);
 for(const x of [-6.9,-4.45,4.45,6.9]) cyl(.1,1.05,wood,x,-1.05,.22);
 
+// Real low-poly 3D furniture and toys from Kenney Furniture Kit (CC0), shipped locally.
+function loadKenney(name, position, scale, rotation=[0,0,0]) { const mtl=new MTLLoader(); mtl.load(`assets/kenney/${name}.mtl`, materials=>{materials.preload();const obj=new OBJLoader();obj.setMaterials(materials);obj.load(`assets/kenney/${name}.obj`, model=>{model.position.set(...position);model.scale.setScalar(scale);model.rotation.set(...rotation);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(model);});}); }
+loadKenney('bookcaseOpen',[7.9,-2.45,-1.25],.018,[0,.55,0]);
+loadKenney('desk',[6.2,-2.7,-.45],.018,[0,-.35,0]);
+loadKenney('chairDesk',[4.7,-2.8,.15],.018,[0,-.8,0]);
+loadKenney('bear',[-8.9,-2.72,.2],.017,[0,.5,0]);
+loadKenney('books',[8.9,-2.65,.45],.019,[0,-.4,0]);
+
 const anchors=[[-4.45,-.08],[-2.95,-.08],[-1.45,-.08],[.05,-.08],[1.55,-.08],[3.05,-.08],[4.45,-.08],[-2.95,-1.65],[-1.45,-2.05],[.05,-2.2],[1.55,-2.05],[3.05,-1.65]].map(([x,y],id)=>({id,x,y}));
 const anchorMeshes=[], hitTargets=[];
 anchors.forEach(a=>{const ring=add(new THREE.TorusGeometry(.17,.052,10,20),new THREE.MeshStandardMaterial({color:'#f7f8ff',emissive:'#87c9fb',emissiveIntensity:1}),a.x,a.y,.48);ring.userData.anchor=a;anchorMeshes.push(ring);hitTargets.push(ring);const core=add(new THREE.SphereGeometry(.085,12,10),new THREE.MeshStandardMaterial({color:'#fff8d7',emissive:'#fff3a1',emissiveIntensity:1.4}),a.x,a.y,.49);core.userData.anchor=a;hitTargets.push(core);});
@@ -66,14 +78,14 @@ function setPointer(e){const r=canvas.getBoundingClientRect();pointer.x=(e.clien
 function anchorAt(e){setPointer(e);return raycaster.intersectObjects(hitTargets)[0]?.object.userData.anchor || null;}
 function clearPreview(){previewGroup.clear();anchorMeshes.forEach(m=>m.material.emissive.set('#87c9fb'));}
 function preview(a,b){previewGroup.clear();if(a!==null&&b&&a!==b){renderBeam(previewGroup,a,b,mat('#ffcf78',{emissive:'#ffb765',emissiveIntensity:.4}),.58);anchorMeshes.filter(m=>m.userData.anchor.id===b.id).forEach(m=>m.material.emissive.set('#ffbf75'));}}
-canvas.addEventListener('pointerdown',e=>{if(testing)return;const a=anchorAt(e);if(!a)return;dragStart=a.id;dragging=true;canvas.setPointerCapture?.(e.pointerId);anchorMeshes.filter(m=>m.userData.anchor.id===a.id).forEach(m=>m.material.emissive.set('#ffbf75'));updateMeter();e.preventDefault();});
+canvas.addEventListener('pointerdown',e=>{if(testing)return;const a=anchorAt(e);if(!a)return;dragStart=a.id;dragging=true;controls.enabled=false;canvas.setPointerCapture?.(e.pointerId);anchorMeshes.filter(m=>m.userData.anchor.id===a.id).forEach(m=>m.material.emissive.set('#ffbf75'));updateMeter();e.preventDefault();});
 canvas.addEventListener('pointermove',e=>{if(!dragging)return;clearPreview();const a=anchorAt(e);preview(dragStart,a);});
-function finishDrag(e){if(!dragging)return;const end=anchorAt(e);if(end&&dragStart!==end.id)addBeam(dragStart,end.id);else if(!end)notify('Alege un alt punct luminos pentru capătul grinzii.');dragStart=null;dragging=false;clearPreview();updateMeter();}
+function finishDrag(e){if(!dragging)return;const end=anchorAt(e);if(end&&dragStart!==end.id)addBeam(dragStart,end.id);else if(!end)notify('Alege un alt punct luminos pentru capătul grinzii.');dragStart=null;dragging=false;controls.enabled=true;clearPreview();updateMeter();}
 canvas.addEventListener('pointerup',finishDrag);canvas.addEventListener('pointercancel',finishDrag);
 undoButton.onclick=()=>{if(!testing&&members.length){members.pop();renderBridge();updateMeter();}};clearButton.onclick=()=>{if(!testing){members.splice(0);renderBridge();clearPreview();dragStart=null;updateMeter();}};
 function buildBus(){const g=new THREE.Group();g.position.set(-6.3,.04,.76);const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;g.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;g.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;g.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);g.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;g.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);g.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);g.add(sign);return g;}
 function bridgeReady(){return roadComplete()&&triangulations()>=5&&strength()>=78;}
 testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify(roadComplete()?'Adaugă mai multe grinzi diagonale sub șosea!':'Mai întâi unește toate punctele roz ale șoselei.');return;}testing=true;clearPreview();bus=buildBus();scene.add(bus);busStart=performance.now();testButton.disabled=true;instruction.textContent='Autobuzul școlar testează podul…';notify('Ține pumnii pentru autobuz! 🚌');};
-function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);const aspect=w/h;const worldW=23,worldH=11.5;const viewH=Math.max(worldH,worldW/aspect);camera.left=-viewH*aspect/2;camera.right=viewH*aspect/2;camera.top=viewH/2;camera.bottom=-viewH/2;camera.updateProjectionMatrix();}
+function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(canvas);window.visualViewport?.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,80));resize();
-function animate(t){requestAnimationFrame(animate);anchorMeshes.forEach((m,i)=>m.rotation.z=t*.001*(i%2?1:-1));if(testing&&bus){const p=Math.min(1,(t-busStart)/5900);bus.position.x=-6.3+p*12.6;bus.position.y=.04+Math.sin(p*Math.PI*6)*.022;bus.rotation.z=Math.sin(p*Math.PI*4)*.012;if(p===1){testing=false;testButton.disabled=false;scene.remove(bus);bus=null;instruction.textContent='Pod reușit! Ai dus autobuzul în siguranță.';notify('BRAVO! Podul a trecut testul! ✨');}}renderer.render(scene,camera);}updateMeter();animate(0);
+function animate(t){requestAnimationFrame(animate);controls.update();anchorMeshes.forEach((m,i)=>m.rotation.z=t*.001*(i%2?1:-1));if(testing&&bus){const p=Math.min(1,(t-busStart)/5900);bus.position.x=-6.3+p*12.6;bus.position.y=.04+Math.sin(p*Math.PI*6)*.022;bus.rotation.z=Math.sin(p*Math.PI*4)*.012;if(p===1){testing=false;testButton.disabled=false;scene.remove(bus);bus=null;instruction.textContent='Pod reușit! Ai dus autobuzul în siguranță.';notify('BRAVO! Podul a trecut testul! ✨');}}renderer.render(scene,camera);}updateMeter();animate(0);
