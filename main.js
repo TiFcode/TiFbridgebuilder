@@ -23,7 +23,15 @@ const scene = new THREE.Scene(); scene.background = new THREE.Color('#b9d9cf'); 
 // with just enough orbit/zoom for depth, rather than a free camera that lets
 // the player accidentally look down the bridge and turn the piers into a wall.
 const camera = new THREE.PerspectiveCamera(38, 1, .1, 100); camera.position.set(2.8, 2.5, 19.5);
-const controls = new OrbitControls(camera, canvas); controls.target.set(0, -1.15, .15); controls.enableDamping=true; controls.dampingFactor=.07; controls.minDistance=12; controls.maxDistance=24; controls.maxPolarAngle=1.46; controls.minPolarAngle=1.20; controls.minAzimuthAngle=-.38; controls.maxAzimuthAngle=.38; controls.enablePan=false; controls.screenSpacePanning=true;
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, -1.15, .15);
+controls.enableDamping=true; controls.dampingFactor=.07;
+// Keep the construction plane usable, but let the player actually inspect the
+// playroom: broad orbit, close/far zoom, and genuine pan are all available.
+controls.minDistance=5.5; controls.maxDistance=38;
+controls.minPolarAngle=.28; controls.maxPolarAngle=2.62;
+controls.enablePan=true; controls.panSpeed=1.05; controls.screenSpacePanning=true;
+controls.zoomSpeed=1.2; controls.rotateSpeed=.9;
 const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
 const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -.42);
 const dragPoint = new THREE.Vector3();
