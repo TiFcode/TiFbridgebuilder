@@ -105,9 +105,11 @@ loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-8.05,-3.78,-3.6],
 let busTemplate=null;
 gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{
   busTemplate=gltf.scene;
-  // This asset's nose/length is authored on Z.  The roadway is X, so yaw it
-  // once here; the simulation can then use rotation.z only for road slope.
-  sizeAndPlace(busTemplate,[0,0,0],2.45,[0,Math.PI/2,0]);
+  // Inspecting the actual GLB bounds shows its long axis is local Y and its
+  // vertical axis is local Z (not Three.js' usual Y-up convention).  Map
+  // Y → world X (the road) and Z → world Y (up) in one immutable model-space
+  // transform.  A yaw alone left the bus' length pointing upward.
+  sizeAndPlace(busTemplate,[0,0,0],2.45,[-Math.PI/2,0,-Math.PI/2]);
   busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
 },undefined,err=>console.warn('Bus model unavailable',err));
 
