@@ -59,9 +59,14 @@ loadPbrModel(`${ph}SchoolChair_01/SchoolChair_01_1k.gltf`, [4.45,-3.78,.2], 1.65
 loadPbrModel(`${ph}Shelf_01/Shelf_01_1k.gltf`, [9.5,-3.78,-1.65], 2.55, [0,.48,0]);
 loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.77,.38], .55, [0,.4,0]);
 loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`, [8.7,-3.78,.18], 1.65, [0,-.36,0]);
-// Each row is deliberately half the bridge span: the bridge is roughly two book-lengths long.
-function pbrBookPier(x){for(const [y,z,angle] of [[-3.78,.02,.08],[-2.58,.06,-.05],[-1.42,.04,.04]])loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[x,y,z],4.45,[0,angle,0]);}
+// Two oversized, real book models support each bridge end.  A few loose books
+// lean nearby so this reads as a playroom scene, not a wall of books.
+function pbrBookPier(x){for(const [y,z,angle] of [[-3.78,.02,.06],[-2.10,.05,-.04]])loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[x,y,z],4.45,[0,angle,0]);}
 pbrBookPier(-5.65);pbrBookPier(5.65);
+loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[-7.75,-3.78,.32],1.45,[0,.82,.18]);
+loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[-7.05,-3.78,.28],1.20,[0,-.48,-.12]);
+loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[7.45,-3.78,.35],1.30,[0,.56,.08]);
+loadKenney('bear',[-8.05,-3.78,-.72],.35,[0,.45,0]);
 let busTemplate=null;
 gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;sizeAndPlace(busTemplate,[0,0,0],2.45,[0,Math.PI/2,0]);busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
 
