@@ -42,12 +42,14 @@ function box(w,h,d,m,x=0,y=0,z=0){return add(new THREE.BoxGeometry(w,h,d),m,x,y,
 function sphere(r,m,x=0,y=0,z=0){return add(new THREE.SphereGeometry(r,20,14),m,x,y,z)}
 function cyl(r,h,m,x=0,y=0,z=0,rot=0){const o=add(new THREE.CylinderGeometry(r,r,h,16),m,x,y,z);o.rotation.z=rot;return o}
 
-// A toy-room diorama: window, desk, shelves, rug, books and little toys sit behind the bridge.
-box(28,16,.25,mint,0,3.1,-2.5); box(28,.4,5,mat('#e6c9a6'),0,-4.1,.6);
-for(let x=-13;x<=13;x+=2) box(.035,.025,4.4,mat('#c4a57e'),x,-3.9,.6);
-// Window with warm late-afternoon light.
-box(6.6,4.2,.11,cream,-6.8,3.25,-2.32); box(6.15,3.7,.12,mat('#b8e6f3'),-6.8,3.25,-2.19);box(.12,3.7,.14,cream,-6.8,3.25,-2.08);box(6.15,.12,.14,cream,-6.8,3.25,-2.08);sphere(.62,new THREE.MeshBasicMaterial({color:'#fff4bd'}),-8.3,4.2,-2.05);
-for(let i=0;i<4;i++) sphere(.32+(i%2)*.09,new THREE.MeshBasicMaterial({color:'#f3fbff'}),-6+i*.36,4.2+(i%2)*.13,-2.02);
+// A full playroom recedes behind the bridge. The rear wall is deliberately far
+// back; it is a room, not the old flat wall immediately behind the game.
+box(28,16,.25,mint,0,3.1,-9.4); box(28,.4,16,mat('#e6c9a6'),0,-4.1,-2.5);
+box(.25,16,16,cream,-13.7,3.1,-2.5); box(.25,16,16,cream,13.7,3.1,-2.5);
+for(let x=-13;x<=13;x+=2) box(.035,.025,15.4,mat('#c4a57e'),x,-3.9,-2.5);
+// Window with warm late-afternoon light, set into the distant rear wall.
+box(6.6,4.2,.11,cream,-6.8,3.25,-9.22); box(6.15,3.7,.12,mat('#b8e6f3'),-6.8,3.25,-9.09);box(.12,3.7,.14,cream,-6.8,3.25,-8.98);box(6.15,.12,.14,cream,-6.8,3.25,-8.98);sphere(.62,new THREE.MeshBasicMaterial({color:'#fff4bd'}),-8.3,4.2,-8.95);
+for(let i=0;i<4;i++) sphere(.32+(i%2)*.09,new THREE.MeshBasicMaterial({color:'#f3fbff'}),-6+i*.36,4.2+(i%2)*.13,-8.92);
 // Furniture and props are loaded below as authored PBR models; the room shell is deliberately the only built-in geometry.
 // The bridge piers are loaded below as individual scanned book-set models, not colour blocks.
 box(3.25,.28,1.1,pink,-5.65,-.42,.1);box(3.25,.28,1.1,pink,5.65,-.42,.1);
@@ -56,10 +58,13 @@ for(const x of [-6.9,-4.45,4.45,6.9]) cyl(.1,1.05,wood,x,-1.05,.22);
 function sizeAndPlace(model, position, maxSize, rotation=[0,0,0]) { model.rotation.set(...rotation); model.updateMatrixWorld(true); const initial=new THREE.Box3().setFromObject(model), size=initial.getSize(new THREE.Vector3()); const factor=maxSize/Math.max(size.x,size.y,size.z,.001); model.scale.multiplyScalar(factor); model.updateMatrixWorld(true); const fitted=new THREE.Box3().setFromObject(model), center=fitted.getCenter(new THREE.Vector3()); model.position.set(position[0]-center.x,position[1]-fitted.min.y,position[2]-center.z); }
 function loadPbrModel(url, position, maxSize=1, rotation=[0,0,0]) { gltfLoader.load(url, gltf=>{ const model=gltf.scene; sizeAndPlace(model,position,maxSize,rotation); model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true; if(o.material) o.material.envMapIntensity=1.15;}}); scene.add(model); }, undefined, err=>console.warn('Model PBR unavailable', err)); }
 const ph='https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/';
-loadPbrModel(`${ph}SchoolDesk_01/SchoolDesk_01_1k.gltf`, [6.2,-3.78,-.55], 2.4, [0,-.48,0]);
-loadPbrModel(`${ph}SchoolChair_01/SchoolChair_01_1k.gltf`, [4.45,-3.78,.2], 1.65, [0,-.95,0]);
-loadPbrModel(`${ph}Shelf_01/Shelf_01_1k.gltf`, [9.5,-3.78,-1.65], 2.55, [0,.48,0]);
-loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.77,.38], .55, [0,.4,0]);
+loadPbrModel(`${ph}SchoolDesk_01/SchoolDesk_01_1k.gltf`, [6.2,-3.78,-5.6], 2.4, [0,-.48,0]);
+loadPbrModel(`${ph}SchoolChair_01/SchoolChair_01_1k.gltf`, [4.45,-3.78,-4.55], 1.65, [0,-.95,0]);
+loadPbrModel(`${ph}Shelf_01/Shelf_01_1k.gltf`, [9.5,-3.78,-7.7], 2.55, [0,.48,0]);
+loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.77,-2.5], .55, [0,.4,0]);
+loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [1.9,-3.78,-6.8], .42, [0,-.8,0]);
+loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-2.9,-3.78,-6.7], .7, [0,-.45,0]);
+loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [10.4,-3.78,-4.4], .52, [0,.75,0]);
 // Exactly four oversized physical books: two below each end of the bridge.
 // They use scanned Poly Haven book materials; the page block, raised cover,
 // spine bands and page grooves make them read as books at phone scale instead
@@ -80,7 +85,7 @@ addRealBook(-5.65,-3.02,.08,.035,'#a94c52'); addRealBook(-5.65,-1.42,.10,-.025,'
 addRealBook(5.65,-3.02,.08,-.035,'#3b7b72'); addRealBook(5.65,-1.42,.10,.025,'#c27a35');
 // Only three loose books, deliberately kept off the construction space.
 addRealBook(-8.3,-3.25,.18,.75,'#775383').scale.setScalar(.34); addRealBook(7.85,-3.52,.22,-.36,'#b34e55').scale.setScalar(.30); addRealBook(8.55,-3.50,.20,.08,'#315d83').scale.setScalar(.26);
-loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-8.05,-3.78,-.35], .68, [0,.35,0]);
+loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-8.05,-3.78,-3.6], .68, [0,.35,0]);
 let busTemplate=null;
 gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;sizeAndPlace(busTemplate,[0,0,0],2.45,[0,Math.PI/2,0]);busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
 
@@ -94,7 +99,7 @@ const anchorMeshes=[], hitTargets=[];
 anchors.forEach(a=>{const tone=a.y>-.4?'#ffbe83':'#74d9c3';const ring=add(new THREE.TorusGeometry(.105,.029,10,18),new THREE.MeshStandardMaterial({color:'#fff7e7',emissive:tone,emissiveIntensity:.78,roughness:.25}),a.x,a.y,.48);ring.userData.anchor=a;anchorMeshes.push(ring);hitTargets.push(ring);const core=add(new THREE.SphereGeometry(.048,12,10),new THREE.MeshStandardMaterial({color:tone,emissive:tone,emissiveIntensity:1.1,roughness:.22}),a.x,a.y,.49);core.userData.anchor=a;hitTargets.push(core);});
 
 const bridgeGroup=new THREE.Group();scene.add(bridgeGroup);const previewGroup=new THREE.Group();scene.add(previewGroup);
-const members=[];let dragStart=null,dragging=false,testing=false,bus=null,simulation=null,lastFrame=0;
+const members=[];let dragStart=null,dragging=false,brushMode=false,testing=false,bus=null,simulation=null,lastFrame=0;
 function hasMember(a,b){return members.some(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a));}
 function renderBeamPoints(group,A,B,material=wood,opacity=1,caps=true){const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy);if(len<.02)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,len,16),material.clone());m.material.transparent=opacity<1;m.material.opacity=opacity;m.position.set((A.x+B.x)/2,(A.y+B.y)/2,.42);m.rotation.z=-Math.atan2(dx,dy);m.castShadow=true;m.receiveShadow=true;group.add(m);if(caps)for(const p of [A,B]){const cap=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),woodDark);cap.position.set(p.x,p.y,.42);group.add(cap);}}
 function renderBeam(group,a,b,material=wood,opacity=1){renderBeamPoints(group,anchors[a],anchors[b],material,opacity);}
@@ -105,17 +110,30 @@ function isFixedLengthBeam(a,b){return a!==b&&Math.abs(beamLength(a,b)-BEAM_LENG
 function addBeam(a,b){if(!isFixedLengthBeam(a,b)||hasMember(a,b))return false;members.push({a,b});renderBridge();updateMeter();return true;}
 function roadComplete(){return [0,1,2,3,4,5,6].every((id,i,row)=>i===0||hasMember(row[i-1],id));}
 function triangulations(){return members.filter(m=>Math.abs(anchors[m.a].y-anchors[m.b].y)>.35).length;}
-function updateMeter(health=null){if(health===null){meterFill.style.width='0%';meterLabel.textContent='SIM';}else{const n=Math.max(0,Math.min(100,Math.round(health)));meterFill.style.width=`${n}%`;meterLabel.textContent=`${n}%`;}if(!testing)instruction.textContent=dragStart===null?'Trage o bară de 1,50 spre un punct verde.':'Eliberează numai pe un punct verde ca să fixezi bara.';}
+function updateMeter(health=null){if(health===null){meterFill.style.width='0%';meterLabel.textContent='SIM';}else{const n=Math.max(0,Math.min(100,Math.round(health)));meterFill.style.width=`${n}%`;meterLabel.textContent=`${n}%`;}if(!testing)instruction.textContent=brushMode?'Treci peste buline: barele compatibile apar automat.':'Treci cu degetul prin zona bulinelor pentru a construi.';}
 function notify(text){toast.textContent=text;toast.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toast.classList.remove('show'),2600);}
 function setPointer(e){const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width*2-1;pointer.y=-(e.clientY-r.top)/r.height*2+1;raycaster.setFromCamera(pointer,camera);}
 function anchorAt(e){ const rect=canvas.getBoundingClientRect(); let winner=null,best=44; for(const a of anchors){const v=new THREE.Vector3(a.x,a.y,.48).project(camera); const x=rect.left+(v.x+1)*rect.width/2,y=rect.top+(1-v.y)*rect.height/2,d=Math.hypot(e.clientX-x,e.clientY-y);if(d<best){best=d;winner=a;}} return winner; }
+function brushAt(e){
+  const rect=canvas.getBoundingClientRect(); const nearby=[];
+  for(const a of anchors){const v=new THREE.Vector3(a.x,a.y,.48).project(camera);const x=rect.left+(v.x+1)*rect.width/2,y=rect.top+(1-v.y)*rect.height/2;if(Math.hypot(e.clientX-x,e.clientY-y)<76)nearby.push(a.id);}
+  // Fill every fixed-length member whose centre is under the wide fingertip.
+  // This makes strokes in any direction build a local truss, not require pixel-perfect taps.
+  for(let a=0;a<anchors.length;a++)for(let b=a+1;b<anchors.length;b++){
+    if(!isFixedLengthBeam(a,b)||hasMember(a,b))continue;
+    const A=anchors[a],B=anchors[b],v=new THREE.Vector3((A.x+B.x)/2,(A.y+B.y)/2,.48).project(camera);
+    const x=rect.left+(v.x+1)*rect.width/2,y=rect.top+(1-v.y)*rect.height/2;
+    if(nearby.includes(a)||nearby.includes(b)||Math.hypot(e.clientX-x,e.clientY-y)<54)addBeam(a,b);
+  }
+  if(nearby.length) anchorMeshes.filter(m=>nearby.includes(m.userData.anchor.id)).forEach(m=>m.material.emissive.set('#4ee9b0'));
+}
 function pointAt(e){setPointer(e); return raycaster.ray.intersectPlane(dragPlane,dragPoint) ? dragPoint.clone() : null;}
 function clearPreview(){previewGroup.clear();anchorMeshes.forEach(m=>m.material.emissive.set('#87c9fb'));}
 function fixedEndFrom(a,freeEnd){const start=anchors[a],delta=new THREE.Vector2(freeEnd.x-start.x,freeEnd.y-start.y);if(delta.lengthSq()<.001)delta.set(1,0);delta.setLength(BEAM_LENGTH);return new THREE.Vector3(start.x+delta.x,start.y+delta.y,.42);}
 function preview(a,freeEnd,target){previewGroup.clear();if(a===null||!freeEnd)return;const valid=target&&isFixedLengthBeam(a,target.id);const end=valid?new THREE.Vector3(target.x,target.y,.42):fixedEndFrom(a,freeEnd);const previewMat=mat(valid?'#73f3b0':'#ffcb72',{emissive:valid?'#29d98b':'#ff9e46',emissiveIntensity:.85,roughness:.35});renderBeamPoints(previewGroup,anchors[a],end,previewMat,.86,false);const cursor=new THREE.Mesh(new THREE.SphereGeometry(.14,18,14),new THREE.MeshStandardMaterial({color:valid?'#d6ffec':'#fff0c8',emissive:valid?'#47f2ad':'#ffb15e',emissiveIntensity:1.2,roughness:.24}));cursor.position.copy(end);cursor.position.z=.46;previewGroup.add(cursor);if(valid)anchorMeshes.filter(m=>m.userData.anchor.id===target.id).forEach(m=>m.material.emissive.set('#4ee9b0'));}
-canvas.addEventListener('pointerdown',e=>{if(testing)return;const a=anchorAt(e);if(!a)return;dragStart=a.id;dragging=true;controls.enabled=false;canvas.setPointerCapture?.(e.pointerId);anchorMeshes.filter(m=>m.userData.anchor.id===a.id).forEach(m=>m.material.emissive.set('#ffbf75'));updateMeter();e.preventDefault();});
-canvas.addEventListener('pointermove',e=>{if(!dragging)return;clearPreview();const a=anchorAt(e);preview(dragStart,pointAt(e),a);});
-function finishDrag(e){if(!dragging)return;const end=anchorAt(e);if(end&&isFixedLengthBeam(dragStart,end.id))addBeam(dragStart,end.id);else notify(`Bara are lungime fixă: ${BEAM_LENGTH.toFixed(2)}. Alege un punct verde.`);dragStart=null;dragging=false;controls.enabled=true;clearPreview();updateMeter();}
+canvas.addEventListener('pointerdown',e=>{if(testing)return;const a=anchorAt(e);if(!a)return;dragStart=a.id;dragging=true;brushMode=true;controls.enabled=false;canvas.setPointerCapture?.(e.pointerId);clearPreview();brushAt(e);updateMeter();e.preventDefault();});
+canvas.addEventListener('pointermove',e=>{if(!dragging)return;clearPreview();brushAt(e);});
+function finishDrag(e){if(!dragging)return;brushAt(e);dragStart=null;dragging=false;brushMode=false;controls.enabled=true;clearPreview();updateMeter();}
 canvas.addEventListener('pointerup',finishDrag);canvas.addEventListener('pointercancel',finishDrag);
 undoButton.onclick=()=>{if(!testing&&members.length){members.pop();renderBridge();updateMeter();}};clearButton.onclick=()=>{if(!testing){members.splice(0);renderBridge();clearPreview();dragStart=null;updateMeter();}};
 function buildBus(){if(busTemplate){const g=busTemplate.clone(true);g.position.add(new THREE.Vector3(-6.3,.04,.68));return g;}const g=new THREE.Group();g.position.set(-6.3,.04,.76);const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;g.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;g.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;g.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);g.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;g.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);g.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);g.add(sign);return g;}
