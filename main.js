@@ -177,18 +177,23 @@ function hasMember(a,b){return members.some(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b
 function renderBeamPoints(group,A,B,material=wood,opacity=1,caps=true,z=TRUSS_Z){const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy);if(len<.02)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,len,16),material.clone());m.material.transparent=opacity<1;m.material.opacity=opacity;m.position.set((A.x+B.x)/2,(A.y+B.y)/2,z);m.rotation.z=-Math.atan2(dx,dy);m.castShadow=true;m.receiveShadow=true;group.add(m);if(caps)for(const p of [A,B]){const cap=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),woodDark.clone());cap.position.set(p.x,p.y,z);group.add(cap);}}
 function renderBeam(group,a,b,material=wood,opacity=1,z=TRUSS_Z){renderBeamPoints(group,anchors[a],anchors[b],material,opacity,true,z);}
 function pointFor(id){return simulation?simulation.nodes[id].p:anchors[id];}
+// This is deliberately a *display* range, not the structural failure range.
+// A bridge that is safely carrying the bus should already show its load; red
+// must not be reserved for the single frame immediately before a break.
+const HEATMAP_VISUAL_RANGE=.032;
+function heatIntensity(strain=0){return Math.pow(Math.min(1,Math.abs(strain)/HEATMAP_VISUAL_RANGE),.58);}
 function heatMaterial(strain=0){
-  // Blue = relaxed, yellow = working, red = near failure. Axial tension is
+  // Blue = relaxed, yellow = working, red = heavily loaded. Axial tension is
   // constant along one member, therefore every section of that wooden member
   // receives the same physically meaningful stress colour.
-  const intensity=Math.min(1,Math.abs(strain)/.145);
-  const color=new THREE.Color().setHSL(THREE.MathUtils.lerp(.56,.0,intensity), .92, THREE.MathUtils.lerp(.40,.54,intensity));
-  return new THREE.MeshStandardMaterial({color,emissive:color.clone().multiplyScalar(.28+intensity*.42),roughness:.36,metalness:.03});
+  const intensity=heatIntensity(strain);
+  const color=new THREE.Color().setHSL(THREE.MathUtils.lerp(.58,.0,intensity), .97, THREE.MathUtils.lerp(.43,.56,intensity));
+  return new THREE.MeshStandardMaterial({color,emissive:color.clone().multiplyScalar(.42+intensity*.72),roughness:.32,metalness:.01});
 }
 function setHeatMaterial(material,strain=0){
-  const intensity=Math.min(1,Math.abs(strain)/.145);
-  material.color.setHSL(THREE.MathUtils.lerp(.56,.0,intensity),.92,THREE.MathUtils.lerp(.40,.54,intensity));
-  material.emissive.copy(material.color).multiplyScalar(.28+intensity*.42);
+  const intensity=heatIntensity(strain);
+  material.color.setHSL(THREE.MathUtils.lerp(.58,.0,intensity),.97,THREE.MathUtils.lerp(.43,.56,intensity));
+  material.emissive.copy(material.color).multiplyScalar(.42+intensity*.72);
 }
 function makeSimulationBeamView(beam){
   // One set of meshes/materials per member for the entire test.  Updating
