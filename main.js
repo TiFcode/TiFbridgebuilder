@@ -17,8 +17,8 @@ const clearButton = document.querySelector('#clear');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
-const scene = new THREE.Scene(); scene.background = new THREE.Color('#b9d9cf'); scene.fog = new THREE.Fog('#b9d9cf', 18, 42);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.32;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#78c9e8'); scene.fog = new THREE.Fog('#78c9e8', 26, 58);
 // The construction plane must remain legible.  This is a side-on game view,
 // with just enough orbit/zoom for depth, rather than a free camera that lets
 // the player accidentally look down the bridge and turn the piers into a wall.
@@ -28,7 +28,7 @@ controls.target.set(0, -1.15, .15);
 controls.enableDamping=true; controls.dampingFactor=.07;
 // Keep the construction plane usable, but let the player actually inspect the
 // playroom: broad orbit, close/far zoom, and genuine pan are all available.
-controls.minDistance=5.5; controls.maxDistance=38;
+controls.minDistance=5.5; controls.maxDistance=21.5;
 controls.minPolarAngle=.28; controls.maxPolarAngle=2.62;
 controls.enablePan=true; controls.panSpeed=1.05; controls.screenSpacePanning=true;
 controls.zoomSpeed=1.2; controls.rotateSpeed=.9;
@@ -41,9 +41,9 @@ function pbrTexture(url, repeat=[1,1]) { const t=textureLoader.load(url); t.colo
 function dataTexture(url, repeat=[1,1]) { const t=textureLoader.load(url); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(...repeat); return t; }
 
 const mat = (color, extra={}) => new THREE.MeshStandardMaterial({ color, roughness: .7, ...extra });
-const wood=mat('#cb8658',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_diff_1k.jpg',[2,1]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg',[2,1]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg',[2,1]),roughness:.58}), woodDark=mat('#87503d'), pink=mat('#ef8b9a'), cream=mat('#fff3d8'), yellow=mat('#f6bd3f'), black=mat('#17202c',{roughness:.34,metalness:.72}), glass=mat('#8dd4e8',{roughness:.12,metalness:.12,transparent:true,opacity:.76}), green=mat('#7cc78e'), leaf=mat('#69ae81'), mint=mat('#d7d3cd',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg',[4,3]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg',[4,3]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg',[4,3]),roughness:.82});
-scene.add(new THREE.HemisphereLight('#fff3cd', '#6b8294', 2.7));
-const sun = new THREE.DirectionalLight('#fff0b4', 3.3); sun.position.set(-8, 11, 10); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-13;sun.shadow.camera.right=13;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-9;scene.add(sun);
+const wood=mat('#d97b36',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_diff_1k.jpg',[2,1]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg',[2,1]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg',[2,1]),roughness:.52}), woodDark=mat('#74351e'), pink=mat('#ff6684'), cream=mat('#fff3d8'), yellow=mat('#ffc62f'), black=mat('#17202c',{roughness:.34,metalness:.72}), glass=mat('#48ccef',{roughness:.12,metalness:.12,transparent:true,opacity:.76}), green=mat('#55d28a'), leaf=mat('#36bb74'), mint=mat('#ffb29e',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg',[4,3]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg',[4,3]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg',[4,3]),roughness:.72});
+scene.add(new THREE.HemisphereLight('#fff5c7', '#348cc4', 3.25));
+const sun = new THREE.DirectionalLight('#fff0a8', 4.0); sun.position.set(-8, 11, 10); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-22;sun.shadow.camera.right=22;sun.shadow.camera.top=14;sun.shadow.camera.bottom=-11;scene.add(sun);
 const rim = new THREE.DirectionalLight('#b9c8ff', 1.35);rim.position.set(8,5,4);scene.add(rim);
 function add(g,m,x=0,y=0,z=0){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
 function box(w,h,d,m,x=0,y=0,z=0){return add(new THREE.BoxGeometry(w,h,d),m,x,y,z)}
@@ -52,12 +52,12 @@ function cyl(r,h,m,x=0,y=0,z=0,rot=0){const o=add(new THREE.CylinderGeometry(r,r
 
 // A full playroom recedes behind the bridge. The rear wall is deliberately far
 // back; it is a room, not the old flat wall immediately behind the game.
-box(28,16,.25,mint,0,3.1,-9.4); box(28,.4,16,mat('#e6c9a6'),0,-4.1,-2.5);
-box(.25,16,16,cream,-13.7,3.1,-2.5); box(.25,16,16,cream,13.7,3.1,-2.5);
-for(let x=-13;x<=13;x+=2) box(.035,.025,15.4,mat('#c4a57e'),x,-3.9,-2.5);
+box(56,16,.25,mint,0,3.1,-24); box(56,.4,48,mat('#efb765'),0,-4.1,-1);
+box(.25,16,48,cream,-27.7,3.1,-1); box(.25,16,48,cream,27.7,3.1,-1);
+for(let x=-27;x<=27;x+=2) box(.035,.025,47.4,mat('#ba7640'),x,-3.9,-1);
 // Window with warm late-afternoon light, set into the distant rear wall.
-box(6.6,4.2,.11,cream,-6.8,3.25,-9.22); box(6.15,3.7,.12,mat('#b8e6f3'),-6.8,3.25,-9.09);box(.12,3.7,.14,cream,-6.8,3.25,-8.98);box(6.15,.12,.14,cream,-6.8,3.25,-8.98);sphere(.62,new THREE.MeshBasicMaterial({color:'#fff4bd'}),-8.3,4.2,-8.95);
-for(let i=0;i<4;i++) sphere(.32+(i%2)*.09,new THREE.MeshBasicMaterial({color:'#f3fbff'}),-6+i*.36,4.2+(i%2)*.13,-8.92);
+box(6.6,4.2,.11,cream,-6.8,3.25,-23.82); box(6.15,3.7,.12,mat('#48d0f1'),-6.8,3.25,-23.69);box(.12,3.7,.14,cream,-6.8,3.25,-23.58);box(6.15,.12,.14,cream,-6.8,3.25,-23.58);sphere(.62,new THREE.MeshBasicMaterial({color:'#fff4bd'}),-8.3,4.2,-23.55);
+for(let i=0;i<4;i++) sphere(.32+(i%2)*.09,new THREE.MeshBasicMaterial({color:'#f3fbff'}),-6+i*.36,4.2+(i%2)*.13,-23.52);
 // Furniture and props are loaded below as authored PBR models; the room shell is deliberately the only built-in geometry.
 // The bridge piers are loaded below as individual scanned book-set models, not colour blocks.
 box(3.25,.28,1.1,pink,-5.65,-.42,.1);box(3.25,.28,1.1,pink,5.65,-.42,.1);
@@ -73,6 +73,9 @@ loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.77,-2.5], .5
 loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [1.9,-3.78,-6.8], .42, [0,-.8,0]);
 loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-2.9,-3.78,-6.7], .7, [0,-.45,0]);
 loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [10.4,-3.78,-4.4], .52, [0,.75,0]);
+loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-12.7,-3.78,-8.5], .62, [0,-.9,0]);
+loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [13.3,-3.78,-10.8], .58, [0,.1,0]);
+loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-3.8,-3.78,-10.9], .48, [0,.7,0]);
 // Exactly four oversized physical books: two below each end of the bridge.
 // They use scanned Poly Haven book materials; the page block, raised cover,
 // spine bands and page grooves make them read as books at phone scale instead
@@ -95,7 +98,7 @@ addRealBook(5.65,-3.02,.08,-.035,'#3b7b72'); addRealBook(5.65,-1.42,.10,.025,'#c
 addRealBook(-8.3,-3.25,.18,.75,'#775383').scale.setScalar(.34); addRealBook(7.85,-3.52,.22,-.36,'#b34e55').scale.setScalar(.30); addRealBook(8.55,-3.50,.20,.08,'#315d83').scale.setScalar(.26);
 loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-8.05,-3.78,-3.6], .68, [0,.35,0]);
 let busTemplate=null;
-gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;sizeAndPlace(busTemplate,[0,0,0],2.45,[0,Math.PI/2,0]);busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
+gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;sizeAndPlace(busTemplate,[0,0,0],2.45,[0,0,0]);busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
 
 // Every construction member has the same real-world length.  The lower row is
 // positioned on an equilateral-triangle grid, so the player can make a proper
@@ -112,7 +115,22 @@ function hasMember(a,b){return members.some(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b
 function renderBeamPoints(group,A,B,material=wood,opacity=1,caps=true){const dx=B.x-A.x,dy=B.y-A.y,len=Math.hypot(dx,dy);if(len<.02)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,len,16),material.clone());m.material.transparent=opacity<1;m.material.opacity=opacity;m.position.set((A.x+B.x)/2,(A.y+B.y)/2,.42);m.rotation.z=-Math.atan2(dx,dy);m.castShadow=true;m.receiveShadow=true;group.add(m);if(caps)for(const p of [A,B]){const cap=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),woodDark);cap.position.set(p.x,p.y,.42);group.add(cap);}}
 function renderBeam(group,a,b,material=wood,opacity=1){renderBeamPoints(group,anchors[a],anchors[b],material,opacity);}
 function pointFor(id){return simulation?simulation.nodes[id].p:anchors[id];}
-function renderBridge(){bridgeGroup.clear();const active=simulation?simulation.beams:members;active.filter(m=>!m.broken).forEach(m=>{const A=pointFor(m.a),B=pointFor(m.b);renderBeamPoints(bridgeGroup,A,B,anchors[m.a].y>-.4&&anchors[m.b].y>-.4?pink:wood);});}
+function heatMaterial(strain=0){
+  // Blue = relaxed, yellow = working, red = near failure. Axial tension is
+  // constant along one member, therefore every section of that wooden member
+  // receives the same physically meaningful stress colour.
+  const intensity=Math.min(1,Math.abs(strain)/.145);
+  const color=new THREE.Color().setHSL(THREE.MathUtils.lerp(.56,.0,intensity), .92, THREE.MathUtils.lerp(.40,.54,intensity));
+  return new THREE.MeshStandardMaterial({color,emissive:color.clone().multiplyScalar(.28+intensity*.42),roughness:.36,metalness:.03});
+}
+function renderHeatBeam(group,A,B,strain){
+  const segments=8, ax=A.x, ay=A.y, dx=(B.x-ax)/segments, dy=(B.y-ay)/segments;
+  for(let i=0;i<segments;i++){
+    const from={x:ax+dx*i,y:ay+dy*i},to={x:ax+dx*(i+1),y:ay+dy*(i+1)};
+    renderBeamPoints(group,from,to,heatMaterial(strain),1,i===0||i===segments-1);
+  }
+}
+function renderBridge(){bridgeGroup.clear();const active=simulation?simulation.beams:members;active.filter(m=>!m.broken).forEach(m=>{const A=pointFor(m.a),B=pointFor(m.b);if(simulation)renderHeatBeam(bridgeGroup,A,B,m.strain||0);else renderBeamPoints(bridgeGroup,A,B,anchors[m.a].y>-.4&&anchors[m.b].y>-.4?pink:wood);});}
 function beamLength(a,b){return Math.hypot(anchors[a].x-anchors[b].x,anchors[a].y-anchors[b].y);}
 function isFixedLengthBeam(a,b){return a!==b&&Math.abs(beamLength(a,b)-BEAM_LENGTH)<=BEAM_LENGTH_TOLERANCE;}
 function addBeam(a,b){if(!isFixedLengthBeam(a,b)||hasMember(a,b))return false;members.push({a,b});renderBridge();updateMeter();return true;}
@@ -146,8 +164,8 @@ canvas.addEventListener('pointerup',finishDrag);canvas.addEventListener('pointer
 undoButton.onclick=()=>{if(!testing&&members.length){members.pop();renderBridge();updateMeter();}};clearButton.onclick=()=>{if(!testing){members.splice(0);renderBridge();clearPreview();dragStart=null;updateMeter();}};
 function buildBus(){if(busTemplate){const g=busTemplate.clone(true);g.position.add(new THREE.Vector3(-6.3,.04,.68));return g;}const g=new THREE.Group();g.position.set(-6.3,.04,.76);const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;g.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;g.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;g.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);g.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;g.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);g.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);g.add(sign);return g;}
 function bridgeReady(){return roadComplete();}
-function startSimulation(){simulation={elapsed:0,maxStrain:0,failed:false,settle:0,nodes:anchors.map((a,id)=>({p:new THREE.Vector2(a.x,a.y),v:new THREE.Vector2(),fixed:id===0||id===6})),beams:members.map(m=>({a:m.a,b:m.b,rest:Math.hypot(anchors[m.a].x-anchors[m.b].x,anchors[m.a].y-anchors[m.b].y),broken:false}))};}
-function structuralStep(dt){const s=simulation,n=s.nodes,forces=n.map(()=>new THREE.Vector2(0,-.34));const progress=Math.min(1,s.elapsed/9.4),busX=-4.28+progress*8.56;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);forces[i].y-=3.9*(1-u);forces[i+1].y-=3.9*u;break;}}for(const b of s.beams){if(b.broken)continue;const A=n[b.a],B=n[b.b],d=B.p.clone().sub(A.p),len=d.length(),strain=(len-b.rest)/b.rest; s.maxStrain=Math.max(s.maxStrain,Math.abs(strain));if(Math.abs(strain)>.145){b.broken=true;s.failed=true;continue;}const dir=d.multiplyScalar(1/Math.max(.001,len)),relative=B.v.clone().sub(A.v).dot(dir),force=dir.multiplyScalar((len-b.rest)*115+relative*2.8);if(!A.fixed)forces[b.a].add(force);if(!B.fixed)forces[b.b].sub(force);}for(let i=0;i<n.length;i++){const node=n[i];if(node.fixed){node.p.set(anchors[i].x,anchors[i].y);node.v.set(0,0);continue;}node.v.addScaledVector(forces[i],dt);node.v.multiplyScalar(Math.exp(-2.2*dt));node.p.addScaledVector(node.v,dt);}s.elapsed+=dt;for(let i=0;i<n.length;i++){anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(n[i].p.x,n[i].p.y,m.position.z));}renderBridge();const health=s.failed?0:Math.max(0,100-s.maxStrain/.145*100);updateMeter(health);if(bus){let roadY=0;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);roadY=THREE.MathUtils.lerp(A.y,B.y,u);bus.position.x=busX;bus.position.y=roadY+.05;bus.rotation.z=Math.atan2(B.y-A.y,B.x-A.x);break;}}if(s.failed){bus.position.y-=dt*2.2;}}if(s.failed||s.elapsed>9.4){s.settle+=dt;if(s.settle>1.25)finishSimulation(!s.failed);}}
+function startSimulation(){simulation={elapsed:0,maxStrain:0,failed:false,settle:0,nodes:anchors.map((a,id)=>({p:new THREE.Vector2(a.x,a.y),v:new THREE.Vector2(),fixed:id===0||id===6})),beams:members.map(m=>({a:m.a,b:m.b,rest:Math.hypot(anchors[m.a].x-anchors[m.b].x,anchors[m.a].y-anchors[m.b].y),strain:0,broken:false}))};}
+function structuralStep(dt){const s=simulation,n=s.nodes,forces=n.map(()=>new THREE.Vector2(0,-.34));const progress=Math.min(1,s.elapsed/9.4),busX=-4.28+progress*8.56;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);forces[i].y-=3.9*(1-u);forces[i+1].y-=3.9*u;break;}}for(const b of s.beams){if(b.broken)continue;const A=n[b.a],B=n[b.b],d=B.p.clone().sub(A.p),len=d.length(),strain=(len-b.rest)/b.rest;b.strain=strain;s.maxStrain=Math.max(s.maxStrain,Math.abs(strain));if(Math.abs(strain)>.145){b.broken=true;s.failed=true;continue;}const dir=d.multiplyScalar(1/Math.max(.001,len)),relative=B.v.clone().sub(A.v).dot(dir),force=dir.multiplyScalar((len-b.rest)*115+relative*2.8);if(!A.fixed)forces[b.a].add(force);if(!B.fixed)forces[b.b].sub(force);}for(let i=0;i<n.length;i++){const node=n[i];if(node.fixed){node.p.set(anchors[i].x,anchors[i].y);node.v.set(0,0);continue;}node.v.addScaledVector(forces[i],dt);node.v.multiplyScalar(Math.exp(-2.2*dt));node.p.addScaledVector(node.v,dt);}s.elapsed+=dt;for(let i=0;i<n.length;i++){anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(n[i].p.x,n[i].p.y,m.position.z));}renderBridge();const health=s.failed?0:Math.max(0,100-s.maxStrain/.145*100);updateMeter(health);if(bus){let roadY=0;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);roadY=THREE.MathUtils.lerp(A.y,B.y,u);bus.position.x=busX;bus.position.y=roadY+.05;bus.rotation.z=Math.atan2(B.y-A.y,B.x-A.x);break;}}if(s.failed){bus.position.y-=dt*2.2;}}if(s.failed||s.elapsed>9.4){s.settle+=dt;if(s.settle>1.25)finishSimulation(!s.failed);}}
 function finishSimulation(passed){testing=false;testButton.disabled=false;if(bus){scene.remove(bus);bus=null;}simulation=null;anchors.forEach((a,i)=>anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(a.x,a.y,m.position.z)));renderBridge();instruction.textContent=passed?'Test trecut: deformarea a rămas în limite.':'Podul a cedat: adaugă triunghiuri şi testează din nou.';notify(passed?'Test fizic trecut! ✨':'Podul a cedat sub sarcina autobuzului.');updateMeter();}
 testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify('Unește mai întâi toate punctele roz ale șoselei.');return;}testing=true;clearPreview();startSimulation();bus=buildBus();scene.add(bus);testButton.disabled=true;instruction.textContent='Simulare structurală în timp real…';notify('Încărcare, deformare şi rupere a grinzilor active.');};
 function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
