@@ -3,6 +3,7 @@ import { OrbitControls } from 'https://unpkg.com/three@0.161.0/examples/jsm/cont
 import { MTLLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js';
+import { RoundedBoxGeometry } from 'https://unpkg.com/three@0.161.0/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 const canvas = document.querySelector('#game');
 const instruction = document.querySelector('#instruction');
@@ -18,8 +19,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#b9d9cf'); scene.fog = new THREE.Fog('#b9d9cf', 18, 42);
-const camera = new THREE.PerspectiveCamera(42, 1, .1, 100); camera.position.set(10, 6.8, 18);
-const controls = new OrbitControls(camera, canvas); controls.target.set(0, -1.1, 0); controls.enableDamping=true; controls.dampingFactor=.07; controls.minDistance=9; controls.maxDistance=30; controls.maxPolarAngle=Math.PI*.48; controls.minPolarAngle=Math.PI*.20; controls.enablePan=true; controls.screenSpacePanning=true;
+// The construction plane must remain legible.  This is a side-on game view,
+// with just enough orbit/zoom for depth, rather than a free camera that lets
+// the player accidentally look down the bridge and turn the piers into a wall.
+const camera = new THREE.PerspectiveCamera(38, 1, .1, 100); camera.position.set(2.8, 2.5, 19.5);
+const controls = new OrbitControls(camera, canvas); controls.target.set(0, -1.15, .15); controls.enableDamping=true; controls.dampingFactor=.07; controls.minDistance=12; controls.maxDistance=24; controls.maxPolarAngle=1.46; controls.minPolarAngle=1.20; controls.minAzimuthAngle=-.38; controls.maxAzimuthAngle=.38; controls.enablePan=false; controls.screenSpacePanning=true;
 const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
 const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -.42);
 const dragPoint = new THREE.Vector3();
@@ -29,7 +33,7 @@ function pbrTexture(url, repeat=[1,1]) { const t=textureLoader.load(url); t.colo
 function dataTexture(url, repeat=[1,1]) { const t=textureLoader.load(url); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(...repeat); return t; }
 
 const mat = (color, extra={}) => new THREE.MeshStandardMaterial({ color, roughness: .7, ...extra });
-const wood=mat('#cb8658',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_diff_1k.jpg',[2,1]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg',[2,1]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg',[2,1]),roughness:.58}), woodDark=mat('#87503d'), pink=mat('#ef8b9a'), cream=mat('#fff3d8'), yellow=mat('#f6bd3f'), black=mat('#17202c',{roughness:.34,metalness:.72}), glass=mat('#8dd4e8',{roughness:.12,metalness:.12,transparent:true,opacity:.76}), green=mat('#7cc78e'), leaf=mat('#69ae81'), mint=mat('#d7d3cd',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg',[4,3]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg',[4,3]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg',[4,3]),roughness:.82}), purple=mat('#9c91c7'), paper=mat('#f4dfad'), bookBlue=mat('#5f91c2'), bookRed=mat('#db7476'), bookTeal=mat('#60ad9f');
+const wood=mat('#cb8658',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_diff_1k.jpg',[2,1]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_nor_gl_1k.jpg',[2,1]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_deck/wood_floor_deck_rough_1k.jpg',[2,1]),roughness:.58}), woodDark=mat('#87503d'), pink=mat('#ef8b9a'), cream=mat('#fff3d8'), yellow=mat('#f6bd3f'), black=mat('#17202c',{roughness:.34,metalness:.72}), glass=mat('#8dd4e8',{roughness:.12,metalness:.12,transparent:true,opacity:.76}), green=mat('#7cc78e'), leaf=mat('#69ae81'), mint=mat('#d7d3cd',{map:pbrTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_diff_1k.jpg',[4,3]),normalMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg',[4,3]),roughnessMap:dataTexture('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg',[4,3]),roughness:.82});
 scene.add(new THREE.HemisphereLight('#fff3cd', '#6b8294', 2.7));
 const sun = new THREE.DirectionalLight('#fff0b4', 3.3); sun.position.set(-8, 11, 10); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-13;sun.shadow.camera.right=13;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-9;scene.add(sun);
 const rim = new THREE.DirectionalLight('#b9c8ff', 1.35);rim.position.set(8,5,4);scene.add(rim);
@@ -49,8 +53,6 @@ for(let i=0;i<4;i++) sphere(.32+(i%2)*.09,new THREE.MeshBasicMaterial({color:'#f
 box(3.25,.28,1.1,pink,-5.65,-.42,.1);box(3.25,.28,1.1,pink,5.65,-.42,.1);
 for(const x of [-6.9,-4.45,4.45,6.9]) cyl(.1,1.05,wood,x,-1.05,.22);
 
-// Legacy local assets remain as a loading-safe fallback; the visible room uses scanned PBR models below.
-function loadKenney(name, position, scale, rotation=[0,0,0]) { const mtl=new MTLLoader(); mtl.load(`assets/kenney/${name}.mtl`, materials=>{materials.preload();const obj=new OBJLoader();obj.setMaterials(materials);obj.load(`assets/kenney/${name}.obj`, model=>{model.position.set(...position);model.scale.setScalar(scale);model.rotation.set(...rotation);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(model);});}); }
 function sizeAndPlace(model, position, maxSize, rotation=[0,0,0]) { model.rotation.set(...rotation); model.updateMatrixWorld(true); const initial=new THREE.Box3().setFromObject(model), size=initial.getSize(new THREE.Vector3()); const factor=maxSize/Math.max(size.x,size.y,size.z,.001); model.scale.multiplyScalar(factor); model.updateMatrixWorld(true); const fitted=new THREE.Box3().setFromObject(model), center=fitted.getCenter(new THREE.Vector3()); model.position.set(position[0]-center.x,position[1]-fitted.min.y,position[2]-center.z); }
 function loadPbrModel(url, position, maxSize=1, rotation=[0,0,0]) { gltfLoader.load(url, gltf=>{ const model=gltf.scene; sizeAndPlace(model,position,maxSize,rotation); model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true; if(o.material) o.material.envMapIntensity=1.15;}}); scene.add(model); }, undefined, err=>console.warn('Model PBR unavailable', err)); }
 const ph='https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/';
@@ -58,15 +60,27 @@ loadPbrModel(`${ph}SchoolDesk_01/SchoolDesk_01_1k.gltf`, [6.2,-3.78,-.55], 2.4, 
 loadPbrModel(`${ph}SchoolChair_01/SchoolChair_01_1k.gltf`, [4.45,-3.78,.2], 1.65, [0,-.95,0]);
 loadPbrModel(`${ph}Shelf_01/Shelf_01_1k.gltf`, [9.5,-3.78,-1.65], 2.55, [0,.48,0]);
 loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.77,.38], .55, [0,.4,0]);
-loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`, [8.7,-3.78,.18], 1.65, [0,-.36,0]);
-// Two oversized, real book models support each bridge end.  A few loose books
-// lean nearby so this reads as a playroom scene, not a wall of books.
-function pbrBookPier(x){for(const [y,z,angle] of [[-3.78,.02,.06],[-2.10,.05,-.04]])loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[x,y,z],4.45,[0,angle,0]);}
-pbrBookPier(-5.65);pbrBookPier(5.65);
-loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[-7.75,-3.78,.32],1.45,[0,.82,.18]);
-loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[-7.05,-3.78,.28],1.20,[0,-.48,-.12]);
-loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[7.45,-3.78,.35],1.30,[0,.56,.08]);
-loadKenney('bear',[-8.05,-3.78,-.72],.35,[0,.45,0]);
+// Exactly four oversized physical books: two below each end of the bridge.
+// They use scanned Poly Haven book materials; the page block, raised cover,
+// spine bands and page grooves make them read as books at phone scale instead
+// of the old encyclopedia-set "palisade".
+const bookTex='https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/decorative_book_set_01/';
+const pageMat=mat('#ead9b7',{map:pbrTexture(`${bookTex}book_hardcover_01_diff_1k.jpg`,[1,1]),roughness:.78});
+function bookMaterial(tint){ return new THREE.MeshStandardMaterial({color:tint,map:pbrTexture(`${bookTex}book_hardcover_01_cover23_1k.jpg`,[1,1]),roughness:.48,metalness:.02}); }
+function addRealBook(x,y,z,tilt=0,tint='#a95354'){
+  const g=new THREE.Group(); g.position.set(x,y,z); g.rotation.z=tilt; scene.add(g);
+  const body=new THREE.Mesh(new RoundedBoxGeometry(3.72,1.55,.76,6,.10),pageMat); body.castShadow=body.receiveShadow=true; g.add(body);
+  const cover=bookMaterial(tint);
+  for(const yy of [-.83,.83]){const c=new THREE.Mesh(new RoundedBoxGeometry(3.93,.15,.91,5,.055),cover);c.position.y=yy;c.castShadow=c.receiveShadow=true;g.add(c);}
+  const spine=new THREE.Mesh(new RoundedBoxGeometry(.18,1.72,.93,5,.055),cover);spine.position.x=-1.88;spine.castShadow=spine.receiveShadow=true;g.add(spine);
+  for(const xx of [-1.12,-.3,.56,1.32]){const groove=new THREE.Mesh(new THREE.BoxGeometry(.018,1.40,.78),new THREE.MeshStandardMaterial({color:'#a99576',roughness:.85}));groove.position.set(xx,0,.01);g.add(groove);}
+  return g;
+}
+addRealBook(-5.65,-3.02,.08,.035,'#a94c52'); addRealBook(-5.65,-1.42,.10,-.025,'#315d83');
+addRealBook(5.65,-3.02,.08,-.035,'#3b7b72'); addRealBook(5.65,-1.42,.10,.025,'#c27a35');
+// Only three loose books, deliberately kept off the construction space.
+addRealBook(-8.3,-3.25,.18,.75,'#775383').scale.setScalar(.34); addRealBook(7.85,-3.52,.22,-.36,'#b34e55').scale.setScalar(.30); addRealBook(8.55,-3.50,.20,.08,'#315d83').scale.setScalar(.26);
+loadPbrModel(`${ph}rubber_duck_toy/rubber_duck_toy_1k.gltf`, [-8.05,-3.78,-.35], .68, [0,.35,0]);
 let busTemplate=null;
 gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;sizeAndPlace(busTemplate,[0,0,0],2.45,[0,Math.PI/2,0]);busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
 
@@ -77,7 +91,7 @@ const BEAM_LENGTH=1.5;
 const BEAM_LENGTH_TOLERANCE=.09;
 const anchors=[[-4.50,-.08],[-3.00,-.08],[-1.50,-.08],[0,-.08],[1.50,-.08],[3.00,-.08],[4.50,-.08],[-3.75,-1.379],[-2.25,-1.379],[-.75,-1.379],[.75,-1.379],[2.25,-1.379],[3.75,-1.379]].map(([x,y],id)=>({id,x,y}));
 const anchorMeshes=[], hitTargets=[];
-anchors.forEach(a=>{const ring=add(new THREE.TorusGeometry(.17,.052,10,20),new THREE.MeshStandardMaterial({color:'#f7f8ff',emissive:'#87c9fb',emissiveIntensity:1}),a.x,a.y,.48);ring.userData.anchor=a;anchorMeshes.push(ring);hitTargets.push(ring);const core=add(new THREE.SphereGeometry(.085,12,10),new THREE.MeshStandardMaterial({color:'#fff8d7',emissive:'#fff3a1',emissiveIntensity:1.4}),a.x,a.y,.49);core.userData.anchor=a;hitTargets.push(core);});
+anchors.forEach(a=>{const tone=a.y>-.4?'#ffbe83':'#74d9c3';const ring=add(new THREE.TorusGeometry(.105,.029,10,18),new THREE.MeshStandardMaterial({color:'#fff7e7',emissive:tone,emissiveIntensity:.78,roughness:.25}),a.x,a.y,.48);ring.userData.anchor=a;anchorMeshes.push(ring);hitTargets.push(ring);const core=add(new THREE.SphereGeometry(.048,12,10),new THREE.MeshStandardMaterial({color:tone,emissive:tone,emissiveIntensity:1.1,roughness:.22}),a.x,a.y,.49);core.userData.anchor=a;hitTargets.push(core);});
 
 const bridgeGroup=new THREE.Group();scene.add(bridgeGroup);const previewGroup=new THREE.Group();scene.add(previewGroup);
 const members=[];let dragStart=null,dragging=false,testing=false,bus=null,simulation=null,lastFrame=0;
