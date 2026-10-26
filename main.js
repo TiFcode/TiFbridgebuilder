@@ -52,23 +52,24 @@ const rug=box(18,.08,2.5,mat('#e4c1b6'),0,-3.68,.1);rug.rotation.x=.02;
 for(const x of [-10.3,10.4]) {cyl(.12,1.3,wood,x,-2.15,-.35);sphere(.55,leaf,x,.0,-.35);sphere(.39,green,x+.32,-.22,-.35);}
 box(1.3,.18,.5,bookRed,-9.3,-2.8,-.45);box(1.18,.18,.5,bookBlue,-9.15,-2.57,-.45);box(1.05,.18,.5,bookTeal,-9,-2.34,-.45);
 box(1.25,.14,.75,paper,9.2,-2.85,-.25); sphere(.24,yellow,9.15,-2.58,-.1); sphere(.18,pink,9.5,-2.67,-.1); // toy blocks
-// Book piers: stacked, visibly supporting the bridge at its ends.
-function bookStack(x){ const colors=[bookBlue,bookRed,bookTeal,mat('#e6b65e')]; for(let i=0;i<4;i++){const b=box(2.3-(i%2)*.14,.43,.86,colors[i],x,-2.58+i*.44,.05);b.rotation.z=(i%2?-.035:.035);} box(2.3,.18,1.05,cream,x,-.62,.05); }
-bookStack(-7.25);bookStack(7.25);
+// The bridge piers are loaded below as individual scanned book-set models, not colour blocks.
 box(3.25,.28,1.1,pink,-5.65,-.42,.1);box(3.25,.28,1.1,pink,5.65,-.42,.1);
 for(const x of [-6.9,-4.45,4.45,6.9]) cyl(.1,1.05,wood,x,-1.05,.22);
 
 // Legacy local assets remain as a loading-safe fallback; the visible room uses scanned PBR models below.
 function loadKenney(name, position, scale, rotation=[0,0,0]) { const mtl=new MTLLoader(); mtl.load(`assets/kenney/${name}.mtl`, materials=>{materials.preload();const obj=new OBJLoader();obj.setMaterials(materials);obj.load(`assets/kenney/${name}.obj`, model=>{model.position.set(...position);model.scale.setScalar(scale);model.rotation.set(...rotation);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(model);});}); }
-function loadPbrModel(url, position, scale=1, rotation=[0,0,0]) { gltfLoader.load(url, gltf=>{ const model=gltf.scene; model.position.set(...position); model.scale.setScalar(scale); model.rotation.set(...rotation); model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true; if(o.material) o.material.envMapIntensity=1.15;}}); scene.add(model); }, undefined, err=>console.warn('Model PBR unavailable', err)); }
+function sizeAndPlace(model, position, maxSize, rotation=[0,0,0]) { model.rotation.set(...rotation); model.updateMatrixWorld(true); const initial=new THREE.Box3().setFromObject(model), size=initial.getSize(new THREE.Vector3()); const factor=maxSize/Math.max(size.x,size.y,size.z,.001); model.scale.multiplyScalar(factor); model.updateMatrixWorld(true); const fitted=new THREE.Box3().setFromObject(model), center=fitted.getCenter(new THREE.Vector3()); model.position.set(position[0]-center.x,position[1]-fitted.min.y,position[2]-center.z); }
+function loadPbrModel(url, position, maxSize=1, rotation=[0,0,0]) { gltfLoader.load(url, gltf=>{ const model=gltf.scene; sizeAndPlace(model,position,maxSize,rotation); model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true; if(o.material) o.material.envMapIntensity=1.15;}}); scene.add(model); }, undefined, err=>console.warn('Model PBR unavailable', err)); }
 const ph='https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/';
-loadPbrModel(`${ph}SchoolDesk_01/SchoolDesk_01_1k.gltf`, [6.2,-3.45,-.55], 2.2, [0,-.48,0]);
-loadPbrModel(`${ph}SchoolChair_01/SchoolChair_01_1k.gltf`, [4.45,-3.47,.2], 2.15, [0,-.95,0]);
-loadPbrModel(`${ph}Shelf_01/Shelf_01_1k.gltf`, [9.5,-3.48,-1.65], 2.05, [0,.48,0]);
-loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.31,.38], .72, [0,.4,0]);
-loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`, [8.7,-3.34,.18], 2.0, [0,-.36,0]);
+loadPbrModel(`${ph}SchoolDesk_01/SchoolDesk_01_1k.gltf`, [6.2,-3.78,-.55], 2.4, [0,-.48,0]);
+loadPbrModel(`${ph}SchoolChair_01/SchoolChair_01_1k.gltf`, [4.45,-3.78,.2], 1.65, [0,-.95,0]);
+loadPbrModel(`${ph}Shelf_01/Shelf_01_1k.gltf`, [9.5,-3.78,-1.65], 2.55, [0,.48,0]);
+loadPbrModel(`${ph}dirty_football/dirty_football_1k.gltf`, [-9.4,-3.77,.38], .55, [0,.4,0]);
+loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`, [8.7,-3.78,.18], 1.65, [0,-.36,0]);
+function pbrBookPier(x){for(const [y,z,angle] of [[-3.78,.02,.08],[-2.58,.06,-.05],[-1.42,.04,.04]])loadPbrModel(`${ph}book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf`,[x,y,z],1.18,[0,angle,0]);}
+pbrBookPier(-7.25);pbrBookPier(7.25);
 let busTemplate=null;
-gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
+gltfLoader.load('https://static.poly.pizza/90875552-dda2-4f1c-868b-0c63971a8347.glb', gltf=>{busTemplate=gltf.scene;sizeAndPlace(busTemplate,[0,0,0],2.45,[0,Math.PI/2,0]);busTemplate.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});},undefined,err=>console.warn('Bus model unavailable',err));
 
 const anchors=[[-4.45,-.08],[-2.95,-.08],[-1.45,-.08],[.05,-.08],[1.55,-.08],[3.05,-.08],[4.45,-.08],[-2.95,-1.65],[-1.45,-2.05],[.05,-2.2],[1.55,-2.05],[3.05,-1.65]].map(([x,y],id)=>({id,x,y}));
 const anchorMeshes=[], hitTargets=[];
@@ -96,7 +97,7 @@ canvas.addEventListener('pointermove',e=>{if(!dragging)return;clearPreview();con
 function finishDrag(e){if(!dragging)return;const end=anchorAt(e);if(end&&dragStart!==end.id)addBeam(dragStart,end.id);else if(!end)notify('Alege un alt punct luminos pentru capătul grinzii.');dragStart=null;dragging=false;controls.enabled=true;clearPreview();updateMeter();}
 canvas.addEventListener('pointerup',finishDrag);canvas.addEventListener('pointercancel',finishDrag);
 undoButton.onclick=()=>{if(!testing&&members.length){members.pop();renderBridge();updateMeter();}};clearButton.onclick=()=>{if(!testing){members.splice(0);renderBridge();clearPreview();dragStart=null;updateMeter();}};
-function buildBus(){if(busTemplate){const g=busTemplate.clone(true);g.position.set(-6.3,.04,.68);g.scale.setScalar(.58);g.rotation.set(0,Math.PI/2,0);return g;}const g=new THREE.Group();g.position.set(-6.3,.04,.76);const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;g.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;g.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;g.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);g.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;g.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);g.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);g.add(sign);return g;}
+function buildBus(){if(busTemplate){const g=busTemplate.clone(true);g.position.x=-6.3;g.position.y=.04;g.position.z=.68;return g;}const g=new THREE.Group();g.position.set(-6.3,.04,.76);const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;g.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;g.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;g.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);g.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;g.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);g.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);g.add(sign);return g;}
 function bridgeReady(){return roadComplete()&&triangulations()>=5&&strength()>=78;}
 testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify(roadComplete()?'Adaugă mai multe grinzi diagonale sub șosea!':'Mai întâi unește toate punctele roz ale șoselei.');return;}testing=true;clearPreview();bus=buildBus();scene.add(bus);busStart=performance.now();testButton.disabled=true;instruction.textContent='Autobuzul școlar testează podul…';notify('Ține pumnii pentru autobuz! 🚌');};
 function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
