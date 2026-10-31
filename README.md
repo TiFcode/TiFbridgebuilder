@@ -1,6 +1,12 @@
 # TiFbridgebuilder
 
-Un joc 3D accesibil de construit poduri: unește puncte fixe, creează o șosea susținută de triunghiuri și testează construcția cu un autobuz școlar detaliat.
+Un joc 3D accesibil de construit poduri: unește puncte fixe, creează o șosea susținută de triunghiuri și testează construcția cu vehicule diferite.
+
+## Niveluri și vehicule
+
+- Patru niveluri cu misiuni și sarcini progresive.
+- La fiecare nivel, jucătorul poate alege mașina, duba, autobuzul sau tancul.
+- Vehiculul selectat modifică sarcina din simularea structurală; tancul este provocarea cea mai grea.
 
 Rulează ca site static; dependența 3D este Three.js, încărcată ca modul ES din CDN.
 

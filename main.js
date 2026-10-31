@@ -13,6 +13,36 @@ const toast = document.querySelector('#toast');
 const testButton = document.querySelector('#test');
 const undoButton = document.querySelector('#undo');
 const clearButton = document.querySelector('#clear');
+const levelPill = document.querySelector('#level-pill');
+const levelSelect = document.querySelector('#level-select');
+const vehiclePicker = document.querySelector('#vehicle-picker');
+const missionCopy = document.querySelector('#mission-copy');
+const materialCopy = document.querySelector('#material-copy');
+const levels = [
+  { name:'Podul dintre cărți', hint:'Învață triunghiurile. O sarcină ușoară e un bun început.', load:3.2, goal:'Construiește primul pod stabil.' },
+  { name:'Saltul peste creion', hint:'Grinzile diagonale contează acum mai mult.', load:4.8, goal:'Susține un vehicul de oraș.' },
+  { name:'Expresul de jucărie', hint:'Alege sarcina și întărește trusa înainte de test.', load:6.2, goal:'Traversează cu sarcină grea.' },
+  { name:'Fortăreața mobilă', hint:'Nivel de expert: tancul cere un pod bine triangulat.', load:7.8, goal:'Proiectează pentru cel mai greu test.' }
+];
+const vehicles = [
+  { id:'car', icon:'🚗', name:'Mașină', load:2.7, color:'#f06d70' },
+  { id:'van', icon:'🚐', name:'Dubă', load:4.1, color:'#65b9ef' },
+  { id:'bus', icon:'🚌', name:'Autobuz', load:5.5, color:'#ffc62f' },
+  { id:'tank', icon:'🛡️', name:'Tanc', load:8.7, color:'#607d51' }
+];
+let activeLevel = 0;
+let activeVehicle = 'bus';
+function selectedVehicle(){ return vehicles.find(v=>v.id===activeVehicle) || vehicles[0]; }
+function selectedLoad(){ return Math.max(levels[activeLevel].load, selectedVehicle().load); }
+function renderMissionPicker(){
+  levelSelect.innerHTML = levels.map((level,index)=>`<option value="${index}">Nivelul ${index+1} · ${level.name}</option>`).join('');
+  levelSelect.value=String(activeLevel);
+  vehiclePicker.innerHTML=vehicles.map(vehicle=>`<button class="vehicle-choice ${vehicle.id===activeVehicle?'active':''}" data-vehicle="${vehicle.id}" type="button"><span>${vehicle.icon}</span>${vehicle.name}</button>`).join('');
+  levelPill.textContent=`Nivelul ${activeLevel+1} · ${levels[activeLevel].name}`;
+  missionCopy.textContent=`${levels[activeLevel].goal} ${levels[activeLevel].hint}`;
+  materialCopy.textContent=`Test: ${selectedVehicle().name} · sarcină ${selectedLoad().toFixed(1)}`;
+  vehiclePicker.querySelectorAll('[data-vehicle]').forEach(button=>button.onclick=()=>{ if(testing)return; activeVehicle=button.dataset.vehicle; renderMissionPicker(); notify(`${selectedVehicle().name} selectat pentru test.`); });
+}
 // CC0 recordings from OpenGameArt (looneybits: start; domasx2: idle loop).
 // Both are started directly from the Test button gesture so Safari permits
 // playback; the loop is faded in only after the ignition has begun.
@@ -279,8 +309,26 @@ canvas.addEventListener('pointermove',e=>{if(!dragging)return;const p=pointAt(e)
 function finishDrag(e){if(!dragging)return;brushAt(e);dragStart=null;dragging=false;brushMode=false;controls.enabled=true;clearPreview();updateMeter();}
 canvas.addEventListener('pointerup',finishDrag);canvas.addEventListener('pointercancel',finishDrag);
 undoButton.onclick=()=>{if(!testing&&members.length){members.pop();renderBridge();updateMeter();}};clearButton.onclick=()=>{if(!testing){members.splice(0);renderBridge();clearPreview();dragStart=null;updateMeter();}};
-function buildBus(){const vehicle=new THREE.Group(); // Match the first applied load position: no frame-one jump into the bridge.
-  vehicle.position.set(-4.28,.27,.58);if(busTemplate){const model=busTemplate.clone(true); /* The normalized asset lies on road axis X, but its bonnet points toward -X. It travels -X → +X, so flip only the visual child around the world-up axis. */ const forward=new THREE.Group(); forward.rotation.y=Math.PI; forward.add(model); vehicle.add(forward); return vehicle;}const body=new THREE.Mesh(new THREE.BoxGeometry(2.45,.78,.72),yellow);body.position.y=.22;body.castShadow=true;vehicle.add(body);const hood=new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.68),yellow);hood.position.set(1.4,.03,0);hood.castShadow=true;vehicle.add(hood);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.95,.17,.77),yellow);roof.position.set(-.12,.67,0);roof.castShadow=true;vehicle.add(roof);for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.3,.28,.02),glass);w.position.set(-.84+i*.38,.34,.37);vehicle.add(w);}for(const x of[-.72,1]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.16,18),black);t.rotation.x=Math.PI/2;t.position.set(x,-.24,.02);t.castShadow=true;vehicle.add(t);const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.17,14),cream);h.rotation.x=Math.PI/2;h.position.set(x,-.24,.02);vehicle.add(h);}const sign=new THREE.Mesh(new THREE.BoxGeometry(.62,.15,.02),mat('#e97370'));sign.position.set(-.1,.89,.38);vehicle.add(sign);return vehicle;}
+function vehicleMesh(geometry,material,x=0,y=0,z=0){const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;return mesh;}
+function addWheels(vehicle, positions, radius=.22){for(const x of positions){const tyre=vehicleMesh(new THREE.CylinderGeometry(radius,radius,.16,18),black,x,-.23,.02);tyre.rotation.x=Math.PI/2;vehicle.add(tyre);const hub=vehicleMesh(new THREE.CylinderGeometry(radius*.38,radius*.38,.17,14),cream,x,-.23,.02);hub.rotation.x=Math.PI/2;vehicle.add(hub);}}
+function buildVehicle(){
+  const spec=selectedVehicle(), vehicle=new THREE.Group(); vehicle.position.set(-4.28,.27,.58);
+  if(spec.id==='bus'&&busTemplate){const model=busTemplate.clone(true);const forward=new THREE.Group();forward.rotation.y=Math.PI;forward.add(model);vehicle.add(forward);return vehicle;}
+  const paint=mat(spec.color);
+  if(spec.id==='tank'){
+    vehicle.add(vehicleMesh(new RoundedBoxGeometry(2.25,.58,.92,5,.12),paint,0,.08,0));
+    vehicle.add(vehicleMesh(new THREE.CylinderGeometry(.47,.47,.48,18),paint,-.12,.54,0));
+    const cannon=vehicleMesh(new THREE.CylinderGeometry(.075,.075,1.25,12),paint,.68,.57,0);cannon.rotation.z=-Math.PI/2;vehicle.add(cannon);
+    for(const z of [-.48,.48])vehicle.add(vehicleMesh(new RoundedBoxGeometry(2.18,.26,.17,4,.05),black,0,-.24,z));
+    return vehicle;
+  }
+  const length=spec.id==='car'?1.6:spec.id==='van'?2.05:2.45;
+  vehicle.add(vehicleMesh(new RoundedBoxGeometry(length,.62,.72,5,.10),paint,0,.17,0));
+  vehicle.add(vehicleMesh(new RoundedBoxGeometry(length*.6,.34,.68,4,.08),spec.id==='car'?glass:paint,-.16,.59,0));
+  if(spec.id==='bus')for(let i=0;i<5;i++)vehicle.add(vehicleMesh(new THREE.BoxGeometry(.27,.25,.02),glass,-.76+i*.34,.33,.37));
+  addWheels(vehicle,[-length*.32,length*.32],spec.id==='van'?.25:.22);
+  return vehicle;
+}
 function bridgeReady(){return roadComplete();}
 function startSimulation(){
   lastHeatRender=-Infinity;
@@ -302,9 +350,16 @@ function sampleBusRoad(nodes, x){
   const dydu=.5*((-y0+y2)+2*(2*y0-5*y1+4*y2-y3)*u+3*(-y0+3*y1-3*y2+y3)*u2);
   return {y, angle:Math.atan2(dydu/1.5,1)};
 }
-function structuralStep(dt){const s=simulation,n=s.nodes,forces=n.map(()=>new THREE.Vector2(0,-.34));const progress=Math.min(1,s.elapsed/9.4),busX=-4.28+progress*8.56;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);forces[i].y-=3.9*(1-u);forces[i+1].y-=3.9*u;break;}}for(const b of s.beams){if(b.broken)continue;const A=n[b.a],B=n[b.b],d=B.p.clone().sub(A.p),len=d.length(),strain=(len-b.rest)/b.rest;b.strain=strain;s.maxStrain=Math.max(s.maxStrain,Math.abs(strain));if(Math.abs(strain)>.145){b.broken=true;s.failed=true;if(b.view){b.view.sides.forEach(side=>bridgeGroup.remove(side.member,side.capA,side.capB));b.view.material.dispose();}continue;}const dir=d.multiplyScalar(1/Math.max(.001,len)),relative=B.v.clone().sub(A.v).dot(dir),force=dir.multiplyScalar((len-b.rest)*115+relative*2.8);if(!A.fixed)forces[b.a].add(force);if(!B.fixed)forces[b.b].sub(force);}for(let i=0;i<n.length;i++){const node=n[i];if(node.fixed){node.p.set(anchors[i].x,anchors[i].y);node.v.set(0,0);continue;}node.v.addScaledVector(forces[i],dt);node.v.multiplyScalar(Math.exp(-2.2*dt));node.p.addScaledVector(node.v,dt);}s.elapsed+=dt;for(let i=0;i<n.length;i++){anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(n[i].p.x,n[i].p.y,m.position.z));}updateRoadDeck();if(s.elapsed-lastHeatRender>1/20){s.beams.filter(b=>!b.broken).forEach(updateSimulationBeamView);lastHeatRender=s.elapsed;}const health=s.failed?0:Math.max(0,100-s.maxStrain/.145*100);updateMeter(health);if(bus){const road=sampleBusRoad(n,busX);if(!busMotion)busMotion={x:busX,y:road.y+.31,angle:road.angle};busMotion.x=THREE.MathUtils.damp(busMotion.x,busX,18,dt);busMotion.y=THREE.MathUtils.damp(busMotion.y,road.y+.31,13,dt);busMotion.angle=THREE.MathUtils.damp(busMotion.angle,road.angle,11,dt);bus.position.set(busMotion.x,busMotion.y,.58);bus.rotation.z=busMotion.angle;if(s.failed)bus.position.y-=dt*2.2;}if(s.failed||s.elapsed>9.4){s.settle+=dt;if(s.settle>1.25)finishSimulation(!s.failed);}}
-function finishSimulation(passed){testing=false;testButton.disabled=false;stopBusAudio();if(bus){scene.remove(bus);bus=null;}busMotion=null;simulation=null;anchors.forEach((a,i)=>anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(a.x,a.y,m.position.z)));renderBridge();instruction.textContent=passed?'Test trecut: deformarea a rămas în limite.':'Podul a cedat: adaugă triunghiuri şi testează din nou.';notify(passed?'Test fizic trecut! ✨':'Podul a cedat sub sarcina autobuzului.');updateMeter();}
-testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify('Unește mai întâi toate punctele roz ale șoselei.');return;}testing=true;clearPreview();startSimulation();bus=buildBus();scene.add(bus);startBusAudio();testButton.disabled=true;instruction.textContent='Simulare structurală în timp real…';notify('Încărcare, deformare şi rupere a grinzilor active.');};
+function structuralStep(dt){const s=simulation,n=s.nodes,forces=n.map(()=>new THREE.Vector2(0,-.34));const progress=Math.min(1,s.elapsed/9.4),busX=-4.28+progress*8.56;for(let i=0;i<6;i++){const A=n[i].p,B=n[i+1].p;if(busX>=Math.min(A.x,B.x)&&busX<=Math.max(A.x,B.x)){const u=(busX-A.x)/Math.max(.001,B.x-A.x);forces[i].y-=selectedLoad()*(1-u);forces[i+1].y-=selectedLoad()*u;break;}}for(const b of s.beams){if(b.broken)continue;const A=n[b.a],B=n[b.b],d=B.p.clone().sub(A.p),len=d.length(),strain=(len-b.rest)/b.rest;b.strain=strain;s.maxStrain=Math.max(s.maxStrain,Math.abs(strain));if(Math.abs(strain)>.145){b.broken=true;s.failed=true;if(b.view){b.view.sides.forEach(side=>bridgeGroup.remove(side.member,side.capA,side.capB));b.view.material.dispose();}continue;}const dir=d.multiplyScalar(1/Math.max(.001,len)),relative=B.v.clone().sub(A.v).dot(dir),force=dir.multiplyScalar((len-b.rest)*115+relative*2.8);if(!A.fixed)forces[b.a].add(force);if(!B.fixed)forces[b.b].sub(force);}for(let i=0;i<n.length;i++){const node=n[i];if(node.fixed){node.p.set(anchors[i].x,anchors[i].y);node.v.set(0,0);continue;}node.v.addScaledVector(forces[i],dt);node.v.multiplyScalar(Math.exp(-2.2*dt));node.p.addScaledVector(node.v,dt);}s.elapsed+=dt;for(let i=0;i<n.length;i++){anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(n[i].p.x,n[i].p.y,m.position.z));}updateRoadDeck();if(s.elapsed-lastHeatRender>1/20){s.beams.filter(b=>!b.broken).forEach(updateSimulationBeamView);lastHeatRender=s.elapsed;}const health=s.failed?0:Math.max(0,100-s.maxStrain/.145*100);updateMeter(health);if(bus){const road=sampleBusRoad(n,busX);if(!busMotion)busMotion={x:busX,y:road.y+.31,angle:road.angle};busMotion.x=THREE.MathUtils.damp(busMotion.x,busX,18,dt);busMotion.y=THREE.MathUtils.damp(busMotion.y,road.y+.31,13,dt);busMotion.angle=THREE.MathUtils.damp(busMotion.angle,road.angle,11,dt);bus.position.set(busMotion.x,busMotion.y,.58);bus.rotation.z=busMotion.angle;if(s.failed)bus.position.y-=dt*2.2;}if(s.failed||s.elapsed>9.4){s.settle+=dt;if(s.settle>1.25)finishSimulation(!s.failed);}}
+function finishSimulation(passed){testing=false;testButton.disabled=false;stopBusAudio();if(bus){scene.remove(bus);bus=null;}busMotion=null;simulation=null;anchors.forEach((a,i)=>anchorMeshes.filter(m=>m.userData.anchor.id===i).forEach(m=>m.position.set(a.x,a.y,m.position.z)));renderBridge();instruction.textContent=passed?'Test trecut: deformarea a rămas în limite.':'Podul a cedat: adaugă triunghiuri şi testează din nou.';notify(passed?`${selectedVehicle().name} a traversat nivelul ${activeLevel+1}! ✨`:`Podul a cedat sub sarcina: ${selectedVehicle().name}.`);updateMeter();}
+testButton.onclick=()=>{if(testing)return;if(!bridgeReady()){notify('Unește mai întâi toate punctele roz ale șoselei.');return;}testing=true;clearPreview();startSimulation();bus=buildVehicle();scene.add(bus);startBusAudio();testButton.disabled=true;instruction.textContent=`Simulare: ${selectedVehicle().name} pe nivelul ${activeLevel+1}…`;notify(`Test ${selectedVehicle().name}: sarcină ${selectedLoad().toFixed(1)} activă.`);};
+levelSelect.onchange=()=>{
+  if(testing)return;
+  activeLevel=Number(levelSelect.value);
+  members.splice(0); renderBridge(); clearPreview(); updateMeter(); renderMissionPicker();
+  notify(`Nivelul ${activeLevel+1} este pregătit. Alege vehiculul și construiește.`);
+};
+renderMissionPicker();
 function resize(){const r=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(canvas);window.visualViewport?.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,80));resize();
 let webglLost=false;
