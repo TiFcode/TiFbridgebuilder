@@ -12,12 +12,17 @@
     <main class="game-shell">
       <header class="topbar">
         <div class="brand"><span class="brand-mark">✦</span><div><h1>TiFbridgebuilder</h1><p>Construiește. Testează. Traversează!</p></div></div>
-        <div class="level-pill">Nivelul 1 · Podul dintre cărți</div>
+        <div class="level-pill" id="level-pill">Nivelul 1 · Podul dintre cărți</div>
       </header>
       <section class="play-area" aria-label="Scena jocului">
         <canvas id="game"></canvas>
         <div class="instruction-card"><span class="step-number">1</span><span id="instruction">Treci cu degetul pe lângă buline pentru a construi.</span></div>
-        <div class="material-chip"><span>🪵</span><b>LEMN · 1,50</b><small>Lungime fixă</small></div>
+        <section class="mission-panel" aria-label="Selectează nivelul și vehiculul">
+          <div class="mission-row"><span>NIVEL</span><select id="level-select" aria-label="Nivel"></select></div>
+          <div class="vehicle-picker" id="vehicle-picker" aria-label="Vehicul pentru test"></div>
+          <small id="mission-copy"></small>
+        </section>
+        <div class="material-chip"><span>🪵</span><b>LEMN · 1,50</b><small id="material-copy">Lungime fixă</small></div>
         <div class="heat-key" aria-label="Legendă tensiune"><i></i><span>TENSIUNE</span><em>mică</em><em>mare</em></div>
         <div class="bridge-meter" aria-live="polite"><span>REZISTENȚĂ</span><div class="meter-track"><i id="meter-fill"></i></div><strong id="meter-label">0%</strong></div>
         <div id="toast" class="toast" role="status"></div>
